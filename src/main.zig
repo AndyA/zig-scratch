@@ -15,11 +15,23 @@ const ImplLiteralFloat = struct {
         _ = ctx;
         return node.value;
     }
+
+    pub fn foo(node: *const LiteralFloat, ctx: anytype, flag: bool) anyerror!bool {
+        _ = node;
+        _ = ctx;
+        return flag;
+    }
 };
 
 const ImplAddOp = struct {
     pub fn eval(node: *const AddOp, ctx: anytype) anyerror!f64 {
         return (try node.left.eval(ctx)) + (try node.right.eval(ctx));
+    }
+
+    pub fn foo(node: *const AddOp, ctx: anytype, flag: bool) anyerror!bool {
+        _ = node;
+        _ = ctx;
+        return flag;
     }
 };
 
@@ -27,15 +39,18 @@ const ImplMulOp = struct {
     pub fn eval(node: *const MulOp, ctx: anytype) anyerror!f64 {
         return (try node.left.eval(ctx)) * (try node.right.eval(ctx));
     }
+
+    pub fn foo(node: *const MulOp, ctx: anytype, flag: bool) anyerror!bool {
+        _ = node;
+        _ = ctx;
+        return flag;
+    }
 };
 
 const LiteralInt = Literal(i64);
 const LiteralFloat = Literal(f64);
-// const AddOp = BinOp(Node, "+");
-// const MulOp = BinOp(Node, "*");
-
-const AddOp = struct { left: *const Node, right: *const Node };
-const MulOp = struct { left: *const Node, right: *const Node };
+const AddOp = BinOp(Node, "+");
+const MulOp = BinOp(Node, "*");
 
 const Node = union(enum) {
     // int: LiteralInt,
@@ -49,11 +64,11 @@ const Node = union(enum) {
         return rv;
     }
 
-    // pub fn foo(self: *const Node, ctx: anytype, flag: bool) !bool {
-    //     var rv: bool = undefined;
-    //     try ctx.despatch("foo", self, .{flag}, &rv);
-    //     return rv;
-    // }
+    pub fn foo(self: *const Node, ctx: anytype, flag: bool) !bool {
+        var rv: bool = undefined;
+        try ctx.despatch("foo", self, .{flag}, &rv);
+        return rv;
+    }
 };
 
 test Node {
@@ -65,18 +80,6 @@ test Node {
 }
 
 const Type = std.builtin.Type;
-
-fn structField(comptime name: []const u8, comptime T: type) Type.StructField {
-    var z_name: [name.len:0]u8 = @splat(' ');
-    @memcpy(&z_name, name);
-    return .{
-        .name = &z_name,
-        .type = T,
-        .default_value_ptr = null,
-        .is_comptime = false,
-        .alignment = 0,
-    };
-}
 
 fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
     comptime {
@@ -166,14 +169,14 @@ fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
                 const type_idx = @intFromEnum(node.*);
                 switch (type_idx) {
                     inline 0...field_map.len - 1 => |idx| {
-                        const jump = @field(despatcher, field_map[idx]);
-                        const foo = @field(jump, method);
-                        const value = @field(node, field_map[idx]);
-                        rv.* = try @call(.auto, foo, .{ &value, self });
+                        const field_name = field_map[idx];
+                        const jump_tab = @field(despatcher, field_name);
+                        const impl_fn = @field(jump_tab, method);
+                        const node_value = @field(node, field_name);
+                        rv.* = try @call(.auto, impl_fn, .{ &node_value, self } ++ params);
                     },
                     else => unreachable,
                 }
-                _ = params;
             }
         };
     }
@@ -195,6 +198,8 @@ test Expr {
     const res = try node.eval(expr);
     std.debug.print("Result: {}\n", .{res});
     try std.testing.expect(AddOp != MulOp);
+    const foo = try node.foo(expr, true);
+    std.debug.print("foo = {any}", .{foo});
 }
 
 pub fn main() !void {
