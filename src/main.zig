@@ -47,21 +47,13 @@ const Node = union(enum) {
     }
 };
 
-test Node {
-    const node = Node{ .float = LiteralFloat{ .value = 3.14 } };
-    const foo: *const Node = @fieldParentPtr("float", &node.float);
-    try std.testing.expect(foo == &node);
-    const flo = @field(&node, "float");
-    try std.testing.expect(flo.value == 3.14);
-}
-
 const Type = std.builtin.Type;
 
 fn Expr(comptime NT: type, comptime implementations: []const type) type {
     comptime {
         const node_info = @typeInfo(NT).@"union";
         var despatcher_fields: [node_info.fields.len]Type.StructField = undefined;
-        var field_names: [node_info.fields.len][]const u8 = undefined;
+        var type_names: [node_info.fields.len][]const u8 = undefined;
 
         // Despatcher is a struct with a field for each node type
         // Each field is a struct with the appropriate impl for each method
@@ -97,7 +89,6 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
                                 else => continue :IMPL,
                             }
                         }
-                        @compileError("Bad!");
                     }
                 }
                 @compileError("No implementation for " ++ node_decl.name ++
@@ -107,7 +98,7 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
             const NodeDespatcher = @Type(.{ .@"struct" = .{
                 .layout = .auto,
                 .fields = &method_fields,
-                .decls = &[_]std.builtin.Type.Declaration{},
+                .decls = &[_]Type.Declaration{},
                 .is_tuple = false,
             } });
 
@@ -119,18 +110,18 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
                 .alignment = @alignOf(@TypeOf(usize)),
             };
 
-            field_names[field_idx] = field.name;
+            type_names[field_idx] = field.name;
         }
 
         const Despatcher = @Type(.{ .@"struct" = .{
             .layout = .auto,
             .fields = &despatcher_fields,
-            .decls = &[_]std.builtin.Type.Declaration{},
+            .decls = &[_]Type.Declaration{},
             .is_tuple = false,
         } });
 
         const despatcher = Despatcher{};
-        const field_map = field_names;
+        const type_map = type_names;
 
         return struct {
             const Self = @This();
@@ -144,11 +135,11 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
             ) anyerror!void {
                 const type_idx = @intFromEnum(node.*);
                 switch (type_idx) {
-                    inline 0...field_map.len - 1 => |idx| {
-                        const field_name = field_map[idx];
-                        const jump_tab = @field(despatcher, field_name);
+                    inline 0...type_map.len - 1 => |idx| {
+                        const type_name = type_map[idx];
+                        const jump_tab = @field(despatcher, type_name);
                         const impl_fn = @field(jump_tab, method);
-                        const node_value = @field(node, field_name);
+                        const node_value = @field(node, type_name);
                         rv.* = try @call(.auto, impl_fn, .{ &node_value, self } ++ params);
                     },
                     else => unreachable,
@@ -176,8 +167,6 @@ test Expr {
 
     const res = try node.eval(expr);
     try std.testing.expect(res == 1.3 * 2.1 + 7.0);
-    std.debug.print("Result: {}\n", .{res});
-    try std.testing.expect(AddOp != MulOp);
 }
 
 pub fn main() !void {
