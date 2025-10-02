@@ -15,35 +15,17 @@ const ImplLiteralFloat = struct {
         _ = ctx;
         return node.value;
     }
-
-    pub fn foo(node: *const LiteralFloat, ctx: anytype, flag: bool) anyerror!bool {
-        _ = node;
-        _ = ctx;
-        return flag;
-    }
 };
 
 const ImplAddOp = struct {
     pub fn eval(node: *const AddOp, ctx: anytype) anyerror!f64 {
         return (try node.left.eval(ctx)) + (try node.right.eval(ctx));
     }
-
-    pub fn foo(node: *const AddOp, ctx: anytype, flag: bool) anyerror!bool {
-        _ = node;
-        _ = ctx;
-        return flag;
-    }
 };
 
 const ImplMulOp = struct {
     pub fn eval(node: *const MulOp, ctx: anytype) anyerror!f64 {
         return (try node.left.eval(ctx)) * (try node.right.eval(ctx));
-    }
-
-    pub fn foo(node: *const MulOp, ctx: anytype, flag: bool) anyerror!bool {
-        _ = node;
-        _ = ctx;
-        return flag;
     }
 };
 
@@ -63,12 +45,6 @@ const Node = union(enum) {
         try ctx.despatch("eval", self, .{}, &rv);
         return rv;
     }
-
-    pub fn foo(self: *const Node, ctx: anytype, flag: bool) !bool {
-        var rv: bool = undefined;
-        try ctx.despatch("foo", self, .{flag}, &rv);
-        return rv;
-    }
 };
 
 test Node {
@@ -81,9 +57,9 @@ test Node {
 
 const Type = std.builtin.Type;
 
-fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
+fn Expr(comptime NT: type, comptime implementations: []const type) type {
     comptime {
-        const node_info = @typeInfo(NodeT).@"union";
+        const node_info = @typeInfo(NT).@"union";
         var despatcher_fields: [node_info.fields.len]Type.StructField = undefined;
         var field_names: [node_info.fields.len][]const u8 = undefined;
 
@@ -96,17 +72,16 @@ fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
             DECL: for (node_info.decls, 0..) |node_decl, node_decl_idx| {
                 for (implementations) |impl| {
                     const impl_info = @typeInfo(impl).@"struct";
-                    for (impl_info.decls) |impl_decl| {
+                    IMPL: for (impl_info.decls) |impl_decl| {
                         if (!std.mem.eql(u8, node_decl.name, impl_decl.name))
-                            continue;
+                            continue :IMPL;
                         const impl_fn = @field(impl, node_decl.name);
                         const impl_fn_info = @typeInfo(@TypeOf(impl_fn)).@"fn";
-                        if (impl_fn_info.params.len < 1) continue;
+                        if (impl_fn_info.params.len < 1) continue :IMPL;
                         if (impl_fn_info.params[0].type) |ft| {
                             switch (@typeInfo(ft)) {
                                 .pointer => |ptr| {
-                                    // @compileLog("trying " ++ @typeName(ptr.child));
-                                    if (ptr.child != field.type) continue;
+                                    if (ptr.child != field.type) continue :IMPL;
 
                                     const method_field = Type.StructField{
                                         .name = impl_decl.name,
@@ -119,9 +94,10 @@ fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
                                     method_fields[node_decl_idx] = method_field;
                                     continue :DECL;
                                 },
-                                else => continue,
+                                else => continue :IMPL,
                             }
                         }
+                        @compileError("Bad!");
                     }
                 }
                 @compileError("No implementation for " ++ node_decl.name ++
@@ -162,7 +138,7 @@ fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
             pub fn despatch(
                 self: Self,
                 comptime method: []const u8,
-                node: *const NodeT,
+                node: *const NT,
                 params: anytype,
                 rv: anytype,
             ) anyerror!void {
@@ -185,8 +161,32 @@ fn Expr(comptime NodeT: type, comptime implementations: []const type) type {
 test Expr {
     // const node = Node{ .float = LiteralFloat{ .value = 3.14 } };
     const node = Node{ .add_op = AddOp{
-        .left = &Node{ .float = LiteralFloat{ .value = 1.3 } },
-        .right = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+        .left = &Node{ .mul_op = MulOp{
+            .left = &Node{ .float = LiteralFloat{ .value = 1.3 } },
+            .right = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+        } },
+        .right = &Node{ .float = LiteralFloat{ .value = 7.0 } },
+    } };
+
+    const expr = Expr(Node, &.{
+        ImplLiteralFloat,
+        ImplAddOp,
+        ImplMulOp,
+    }){};
+
+    const res = try node.eval(expr);
+    try std.testing.expect(res == 1.3 * 2.1 + 7.0);
+    std.debug.print("Result: {}\n", .{res});
+    try std.testing.expect(AddOp != MulOp);
+}
+
+pub fn main() !void {
+    const node = Node{ .add_op = AddOp{
+        .left = &Node{ .mul_op = MulOp{
+            .left = &Node{ .float = LiteralFloat{ .value = 1.3 } },
+            .right = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+        } },
+        .right = &Node{ .float = LiteralFloat{ .value = 7.0 } },
     } };
 
     const expr = Expr(Node, &.{
@@ -197,13 +197,6 @@ test Expr {
 
     const res = try node.eval(expr);
     std.debug.print("Result: {}\n", .{res});
-    try std.testing.expect(AddOp != MulOp);
-    const foo = try node.foo(expr, true);
-    std.debug.print("foo = {any}", .{foo});
-}
-
-pub fn main() !void {
-    std.debug.print("Hello, World!\n", .{});
 }
 
 const std = @import("std");
