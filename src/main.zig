@@ -5,8 +5,8 @@ fn Literal(comptime VT: anytype) type {
 fn BinOp(comptime NT: type, comptime oper: []const u8) type {
     return struct {
         pub const op = oper;
-        left: *const NT,
-        right: *const NT,
+        lhs: *const NT,
+        rhs: *const NT,
     };
 }
 
@@ -19,13 +19,13 @@ const ImplLiteralFloat = struct {
 
 const ImplAddOp = struct {
     pub fn eval(node: *const AddOp, ctx: anytype) anyerror!f64 {
-        return (try node.left.eval(ctx)) + (try node.right.eval(ctx));
+        return (try node.lhs.eval(ctx)) + (try node.rhs.eval(ctx));
     }
 };
 
 const ImplMulOp = struct {
     pub fn eval(node: *const MulOp, ctx: anytype) anyerror!f64 {
-        return (try node.left.eval(ctx)) * (try node.right.eval(ctx));
+        return (try node.lhs.eval(ctx)) * (try node.rhs.eval(ctx));
     }
 };
 
@@ -95,7 +95,7 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
                     " on " ++ @typeName(field.type));
             }
 
-            const NodeDespatcher = @Type(.{ .@"struct" = .{
+            const NodeVTable = @Type(.{ .@"struct" = .{
                 .layout = .auto,
                 .fields = &method_fields,
                 .decls = &[_]Type.Declaration{},
@@ -104,8 +104,8 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
 
             despatcher_fields[field_idx] = Type.StructField{
                 .name = field.name,
-                .type = NodeDespatcher,
-                .default_value_ptr = &NodeDespatcher{},
+                .type = NodeVTable,
+                .default_value_ptr = &NodeVTable{},
                 .is_comptime = true,
                 .alignment = @alignOf(@TypeOf(usize)),
             };
@@ -137,9 +137,9 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
                 switch (type_idx) {
                     inline 0...type_map.len - 1 => |idx| {
                         const type_name = type_map[idx];
-                        const jump_tab = @field(despatcher, type_name);
-                        const impl_fn = @field(jump_tab, method);
+                        const node_vtable = @field(despatcher, type_name);
                         const node_value = @field(node, type_name);
+                        const impl_fn = @field(node_vtable, method);
                         rv.* = try @call(.auto, impl_fn, .{ &node_value, self } ++ params);
                     },
                     else => unreachable,
@@ -152,11 +152,11 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
 test Expr {
     // const node = Node{ .float = LiteralFloat{ .value = 3.14 } };
     const node = Node{ .add_op = AddOp{
-        .left = &Node{ .mul_op = MulOp{
-            .left = &Node{ .float = LiteralFloat{ .value = 1.3 } },
-            .right = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+        .lhs = &Node{ .mul_op = MulOp{
+            .lhs = &Node{ .float = LiteralFloat{ .value = 1.3 } },
+            .rhs = &Node{ .float = LiteralFloat{ .value = 2.1 } },
         } },
-        .right = &Node{ .float = LiteralFloat{ .value = 7.0 } },
+        .rhs = &Node{ .float = LiteralFloat{ .value = 7.0 } },
     } };
 
     const expr = Expr(Node, &.{
@@ -171,11 +171,11 @@ test Expr {
 
 pub fn main() !void {
     const node = Node{ .add_op = AddOp{
-        .left = &Node{ .mul_op = MulOp{
-            .left = &Node{ .float = LiteralFloat{ .value = 1.3 } },
-            .right = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+        .lhs = &Node{ .mul_op = MulOp{
+            .lhs = &Node{ .float = LiteralFloat{ .value = 1.3 } },
+            .rhs = &Node{ .float = LiteralFloat{ .value = 2.1 } },
         } },
-        .right = &Node{ .float = LiteralFloat{ .value = 7.0 } },
+        .rhs = &Node{ .float = LiteralFloat{ .value = 7.0 } },
     } };
 
     const expr = Expr(Node, &.{
