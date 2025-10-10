@@ -1,4 +1,4 @@
-fn Literal(comptime VT: anytype) type {
+fn LitOp(comptime VT: anytype) type {
     return struct { value: VT };
 }
 
@@ -11,7 +11,7 @@ fn BinOp(comptime NT: type, comptime oper: []const u8) type {
 }
 
 const ImplLiteralFloat = struct {
-    pub fn eval(node: *const LiteralFloat, ctx: anytype) anyerror!f64 {
+    pub fn eval(node: *const LitFloat, ctx: anytype) anyerror!f64 {
         _ = ctx;
         return node.value;
     }
@@ -29,14 +29,14 @@ const ImplMulOp = struct {
     }
 };
 
-const LiteralInt = Literal(i64);
-const LiteralFloat = Literal(f64);
+const LitInt = LitOp(i64);
+const LitFloat = LitOp(f64);
 const AddOp = BinOp(Node, "+");
 const MulOp = BinOp(Node, "*");
 
 const Node = union(enum) {
     // int: LiteralInt,
-    float: LiteralFloat,
+    float: LitFloat,
     add_op: AddOp,
     mul_op: MulOp,
 
@@ -153,10 +153,10 @@ test Expr {
     // const node = Node{ .float = LiteralFloat{ .value = 3.14 } };
     const node = Node{ .add_op = AddOp{
         .lhs = &Node{ .mul_op = MulOp{
-            .lhs = &Node{ .float = LiteralFloat{ .value = 1.3 } },
-            .rhs = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+            .lhs = &Node{ .float = LitFloat{ .value = 1.3 } },
+            .rhs = &Node{ .float = LitFloat{ .value = 2.1 } },
         } },
-        .rhs = &Node{ .float = LiteralFloat{ .value = 7.0 } },
+        .rhs = &Node{ .float = LitFloat{ .value = 7.0 } },
     } };
 
     const expr = Expr(Node, &.{
@@ -172,10 +172,10 @@ test Expr {
 pub fn main() !void {
     const node = Node{ .add_op = AddOp{
         .lhs = &Node{ .mul_op = MulOp{
-            .lhs = &Node{ .float = LiteralFloat{ .value = 1.3 } },
-            .rhs = &Node{ .float = LiteralFloat{ .value = 2.1 } },
+            .lhs = &Node{ .float = LitFloat{ .value = 1.3 } },
+            .rhs = &Node{ .float = LitFloat{ .value = 2.1 } },
         } },
-        .rhs = &Node{ .float = LiteralFloat{ .value = 7.0 } },
+        .rhs = &Node{ .float = LitFloat{ .value = 7.0 } },
     } };
 
     const expr = Expr(Node, &.{
