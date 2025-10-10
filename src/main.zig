@@ -80,7 +80,7 @@ fn Expr(comptime NT: type, comptime implementations: []const type) type {
                                         .type = @TypeOf(impl_fn),
                                         .default_value_ptr = impl_fn,
                                         .is_comptime = true,
-                                        .alignment = @alignOf(@TypeOf(impl_fn)),
+                                        .alignment = @alignOf(@TypeOf(&impl_fn)),
                                     };
 
                                     method_fields[node_decl_idx] = method_field;
