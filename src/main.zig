@@ -10,7 +10,7 @@ fn BinOp(comptime NT: type, comptime oper: []const u8) type {
     };
 }
 
-const ImplLiteralFloat = struct {
+const ImplLitFloat = struct {
     pub fn eval(node: *const LitFloat, ctx: anytype) anyerror!f64 {
         _ = ctx;
         return node.value;
@@ -160,7 +160,7 @@ test Expr {
     } };
 
     const expr = Expr(Node, &.{
-        ImplLiteralFloat,
+        ImplLitFloat,
         ImplAddOp,
         ImplMulOp,
     }){};
@@ -179,7 +179,7 @@ pub fn main() !void {
     } };
 
     const expr = Expr(Node, &.{
-        ImplLiteralFloat,
+        ImplLitFloat,
         ImplAddOp,
         ImplMulOp,
     }){};
