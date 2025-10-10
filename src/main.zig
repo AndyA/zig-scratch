@@ -19,13 +19,13 @@ const ImplLitFloat = struct {
 
 const ImplAddOp = struct {
     pub fn eval(node: *const AddOp, ctx: anytype) anyerror!f64 {
-        return (try node.lhs.eval(ctx)) + (try node.rhs.eval(ctx));
+        return try node.lhs.eval(ctx) + try node.rhs.eval(ctx);
     }
 };
 
 const ImplMulOp = struct {
     pub fn eval(node: *const MulOp, ctx: anytype) anyerror!f64 {
-        return (try node.lhs.eval(ctx)) * (try node.rhs.eval(ctx));
+        return try node.lhs.eval(ctx) * try node.rhs.eval(ctx);
     }
 };
 
