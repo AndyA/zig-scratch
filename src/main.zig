@@ -15,3 +15,7 @@ pub fn main() !void {
 
 const std = @import("std");
 const assert = std.debug.assert;
+
+test {
+    _ = @import("./tree.zig");
+}
