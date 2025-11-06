@@ -41,6 +41,10 @@ pub fn TreeNode(comptime T: type) type {
             if (self.right) |right| right.destroy(gpa);
             gpa.destroy(self);
         }
+
+        pub fn iter(self: *const Self, comptime stack_size: usize) TreeIter(T, stack_size) {
+            return TreeIter(T, stack_size).init(self);
+        }
     };
 }
 
@@ -74,17 +78,16 @@ pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
         stack: [stack_size]StackNode = undefined,
         sp: usize = 0,
 
-        fn push(self: *Self, node: StackNode) void {
-            assert(self.sp < stack_size);
-            self.stack[self.sp] = node;
-            self.sp += 1;
+        pub fn init(root: ?*const Node) Self {
+            var iter = Self{};
+            if (root) |r| iter.push(r);
+            return iter;
         }
 
-        pub fn init(root: ?*const Node) Self {
-            var self = Self{};
-            if (root) |r|
-                self.push(StackNode{ .node = r });
-            return self;
+        fn push(self: *Self, node: *const Node) void {
+            assert(self.sp < stack_size);
+            self.stack[self.sp] = StackNode{ .node = node };
+            self.sp += 1;
         }
 
         pub fn next(self: *Self) ?T {
@@ -94,14 +97,12 @@ pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
                 switch (peeked.state) {
                     .Left => {
                         peeked.state = .Right;
-                        if (peeked.node.left) |left|
-                            self.push(StackNode{ .node = left });
+                        if (peeked.node.left) |left| self.push(left);
                     },
                     .Right => {
                         const value = peeked.node.value;
                         self.sp -= 1; // re-use stack slot
-                        if (peeked.node.right) |right|
-                            self.push(StackNode{ .node = right });
+                        if (peeked.node.right) |right| self.push(right);
                         return value;
                     },
                 }
@@ -120,7 +121,7 @@ test TreeIter {
     try root.insert(gpa, 11);
     try root.insert(gpa, 1);
 
-    var i = TreeIter(u32, 10).init(root);
+    var i = root.iter(10);
     try std.testing.expectEqualDeep(1, i.next());
     try std.testing.expectEqualDeep(5, i.next());
     try std.testing.expectEqualDeep(10, i.next());
