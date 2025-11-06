@@ -54,8 +54,10 @@ test TreeNode {
     try root.insert(alloc, 15);
     const n1 = root.find(5);
     const n2 = root.find(15);
+    const n3 = root.find(11);
     try std.testing.expect(n1.?.value == 5);
     try std.testing.expect(n2.?.value == 15);
+    try std.testing.expect(n3 == null);
 }
 
 pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
