@@ -36,9 +36,9 @@ pub fn TreeNode(comptime T: type) type {
             return null;
         }
 
-        pub fn destroy(self: *Self, gpa: Allocator) void {
-            if (self.left) |left| left.destroy(gpa);
-            if (self.right) |right| right.destroy(gpa);
+        pub fn deinit(self: *Self, gpa: Allocator) void {
+            if (self.left) |left| left.deinit(gpa);
+            if (self.right) |right| right.deinit(gpa);
             gpa.destroy(self);
         }
 
@@ -52,7 +52,7 @@ test TreeNode {
     const alloc = std.testing.allocator;
     const Node = TreeNode(u32);
     var root = try Node.create(alloc, 10);
-    defer root.destroy(alloc);
+    defer root.deinit(alloc);
     try std.testing.expect(root.value == 10);
     try root.insert(alloc, 5);
     try root.insert(alloc, 15);
@@ -115,7 +115,7 @@ test TreeIter {
     const gpa = std.testing.allocator;
     const Node = TreeNode(u32);
     var root = try Node.create(gpa, 10);
-    defer root.destroy(gpa);
+    defer root.deinit(gpa);
     try root.insert(gpa, 5);
     try root.insert(gpa, 15);
     try root.insert(gpa, 11);
