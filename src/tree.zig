@@ -49,13 +49,13 @@ pub fn TreeNode(comptime K: type) type {
 }
 
 test TreeNode {
-    const alloc = std.testing.allocator;
+    const gpa = std.testing.allocator;
     const Node = TreeNode(u32);
-    var root = try Node.create(alloc, 10);
-    defer root.deinit(alloc);
+    var root = try Node.create(gpa, 10);
+    defer root.deinit(gpa);
     try std.testing.expect(root.key == 10);
-    try root.insert(alloc, 5);
-    try root.insert(alloc, 15);
+    try root.insert(gpa, 5);
+    try root.insert(gpa, 15);
     const n1 = root.find(5);
     const n2 = root.find(15);
     const n3 = root.find(11);
