@@ -69,44 +69,31 @@ pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
         const Self = @This();
         const Node = TreeNode(T);
 
-        const StackState = enum { Left, Right };
-        const StackNode = struct {
-            node: *const Node,
-            state: StackState = .Left,
-        };
-
-        stack: [stack_size]StackNode = undefined,
+        stack: [stack_size]*const Node = undefined,
         sp: usize = 0,
 
         pub fn init(root: ?*const Node) Self {
             var iter = Self{};
-            if (root) |r| iter.push(r);
+            iter.schedule(root);
             return iter;
         }
 
-        fn push(self: *Self, node: *const Node) void {
-            assert(self.sp < stack_size);
-            self.stack[self.sp] = StackNode{ .node = node };
-            self.sp += 1;
+        fn schedule(self: *Self, node: ?*const Node) void {
+            var current = node;
+            while (current) |n| {
+                assert(self.sp < stack_size);
+                self.stack[self.sp] = n;
+                self.sp += 1;
+                current = n.left;
+            }
         }
 
         pub fn next(self: *Self) ?T {
-            while (true) {
-                if (self.sp == 0) return null;
-                const peeked = &self.stack[self.sp - 1];
-                switch (peeked.state) {
-                    .Left => {
-                        peeked.state = .Right;
-                        if (peeked.node.left) |left| self.push(left);
-                    },
-                    .Right => {
-                        const value = peeked.node.key;
-                        self.sp -= 1; // re-use stack slot
-                        if (peeked.node.right) |right| self.push(right);
-                        return value;
-                    },
-                }
-            }
+            if (self.sp == 0) return null;
+            self.sp -= 1;
+            const top = self.stack[self.sp];
+            self.schedule(top.right);
+            return top.key;
         }
     };
 }
