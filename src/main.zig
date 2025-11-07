@@ -1,14 +1,14 @@
 pub fn main() !void {
-    var gpa = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer gpa.deinit();
-    const alloc = gpa.allocator();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const gpa = arena.allocator();
     var args = std.process.args();
     _ = args.skip();
 
     while (args.next()) |arg| {
         std.debug.print("Loading {s}\n", .{arg});
-        const src = try std.fs.cwd().readFileAlloc(arg, alloc, .unlimited);
-        defer alloc.free(src);
+        const src = try std.fs.cwd().readFileAlloc(arg, gpa, .unlimited);
+        defer gpa.free(src);
         std.debug.print("Loaded {d} bytes\n", .{src.len});
     }
 }
@@ -18,4 +18,5 @@ const assert = std.debug.assert;
 
 test {
     _ = @import("./tree.zig");
+    _ = @import("./eval.zig");
 }

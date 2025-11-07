@@ -1,37 +1,37 @@
-pub fn TreeNode(comptime T: type) type {
+pub fn TreeNode(comptime K: type) type {
     return struct {
         const Self = @This();
 
-        value: T,
+        key: K,
         left: ?*Self = null,
         right: ?*Self = null,
 
-        pub fn create(gpa: Allocator, value: T) !*Self {
+        pub fn create(gpa: Allocator, key: K) !*Self {
             const node = try gpa.create(Self);
-            node.* = .{ .value = value };
+            node.* = .{ .key = key };
             return node;
         }
 
-        pub fn insert(self: *Self, gpa: Allocator, value: T) !void {
-            if (value < self.value) {
+        pub fn insert(self: *Self, gpa: Allocator, key: K) !void {
+            if (key < self.key) {
                 if (self.left) |left|
-                    try left.insert(gpa, value)
+                    try left.insert(gpa, key)
                 else
-                    self.left = try Self.create(gpa, value);
-            } else if (value > self.value) {
+                    self.left = try Self.create(gpa, key);
+            } else if (key > self.key) {
                 if (self.right) |right|
-                    try right.insert(gpa, value)
+                    try right.insert(gpa, key)
                 else
-                    self.right = try Self.create(gpa, value);
+                    self.right = try Self.create(gpa, key);
             }
         }
 
-        pub fn find(self: *const Self, value: T) ?*const Self {
-            if (value == self.value) return self;
-            if (value < self.value) {
-                if (self.left) |left| return left.find(value);
+        pub fn find(self: *const Self, key: K) ?*const Self {
+            if (key == self.key) return self;
+            if (key < self.key) {
+                if (self.left) |left| return left.find(key);
             } else {
-                if (self.right) |right| return right.find(value);
+                if (self.right) |right| return right.find(key);
             }
             return null;
         }
@@ -42,8 +42,8 @@ pub fn TreeNode(comptime T: type) type {
             gpa.destroy(self);
         }
 
-        pub fn iter(self: *const Self, comptime stack_size: usize) TreeIter(T, stack_size) {
-            return TreeIter(T, stack_size).init(self);
+        pub fn iter(self: *const Self, comptime stack_size: usize) TreeIter(K, stack_size) {
+            return TreeIter(K, stack_size).init(self);
         }
     };
 }
@@ -53,14 +53,14 @@ test TreeNode {
     const Node = TreeNode(u32);
     var root = try Node.create(alloc, 10);
     defer root.deinit(alloc);
-    try std.testing.expect(root.value == 10);
+    try std.testing.expect(root.key == 10);
     try root.insert(alloc, 5);
     try root.insert(alloc, 15);
     const n1 = root.find(5);
     const n2 = root.find(15);
     const n3 = root.find(11);
-    try std.testing.expect(n1.?.value == 5);
-    try std.testing.expect(n2.?.value == 15);
+    try std.testing.expect(n1.?.key == 5);
+    try std.testing.expect(n2.?.key == 15);
     try std.testing.expect(n3 == null);
 }
 
@@ -100,7 +100,7 @@ pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
                         if (peeked.node.left) |left| self.push(left);
                     },
                     .Right => {
-                        const value = peeked.node.value;
+                        const value = peeked.node.key;
                         self.sp -= 1; // re-use stack slot
                         if (peeked.node.right) |right| self.push(right);
                         return value;
