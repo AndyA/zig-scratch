@@ -3,27 +3,63 @@ pub fn TreeNode(comptime K: type) type {
         const Self = @This();
 
         key: K,
+        height: i32 = 1,
         left: ?*Self = null,
         right: ?*Self = null,
 
-        pub fn create(gpa: Allocator, key: K) !*Self {
+        pub fn create(gpa: Allocator, key: K) Allocator.Error!*Self {
             const node = try gpa.create(Self);
             node.* = .{ .key = key };
             return node;
         }
 
-        pub fn insert(self: *Self, gpa: Allocator, key: K) !void {
-            if (key < self.key) {
-                if (self.left) |left|
-                    try left.insert(gpa, key)
-                else
-                    self.left = try Self.create(gpa, key);
-            } else if (key > self.key) {
-                if (self.right) |right|
-                    try right.insert(gpa, key)
-                else
-                    self.right = try Self.create(gpa, key);
+        fn getHeight(node: ?*const Self) i32 {
+            if (node) |n| return n.height;
+            return 0;
+        }
+
+        fn recalc(node: *Self) *Self {
+            node.height = @max(getHeight(node.left), getHeight(node.right)) + 1;
+            return node;
+        }
+
+        fn insert(node: *Self, gpa: Allocator, key: K) Allocator.Error!*Self {
+            if (key < node.key)
+                node.left = try insertNode(node.left, gpa, key)
+            else if (key > node.key)
+                node.right = try insertNode(node.right, gpa, key)
+            else
+                return node;
+
+            const lh = getHeight(node.left);
+            const rh = getHeight(node.right);
+
+            //      (N)                (L)
+            //     /   \              /   \
+            //    A    (L)    ->    (N)    C
+            //        /   \        /   \
+            //       B     C      A     B
+
+            if (lh > rh + 1) {
+                // left too deep: pivot
+                var left = node.left.?;
+                node.left = left.right;
+                left.right = node.recalc();
+                return left.recalc();
+            } else if (rh > lh + 1) {
+                // right too deep: pivot
+                var right = node.right.?;
+                node.right = right.left;
+                right.left = node.recalc();
+                return right.recalc();
+            } else {
+                return node.recalc();
             }
+        }
+
+        pub fn insertNode(node: ?*Self, gpa: Allocator, key: K) Allocator.Error!*Self {
+            if (node) |n| return insert(n, gpa, key);
+            return Self.create(gpa, key);
         }
 
         pub fn find(self: *const Self, key: K) ?*const Self {
@@ -54,8 +90,8 @@ test TreeNode {
     var root = try Node.create(gpa, 10);
     defer root.deinit(gpa);
     try std.testing.expect(root.key == 10);
-    try root.insert(gpa, 5);
-    try root.insert(gpa, 15);
+    root = try root.insertNode(gpa, 5);
+    root = try root.insertNode(gpa, 15);
     const n1 = root.find(5);
     const n2 = root.find(15);
     const n3 = root.find(11);
@@ -64,18 +100,31 @@ test TreeNode {
     try std.testing.expect(n3 == null);
 }
 
-pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
+test "Tree balance" {
+    const gpa = std.testing.allocator;
+    const Node = TreeNode(u32);
+    var root = try Node.create(gpa, 1);
+    defer root.deinit(gpa);
+
+    for (2..1000) |i| {
+        root = try root.insertNode(gpa, @intCast(i));
+    }
+
+    try std.testing.expectEqual(root.height, 10);
+}
+
+pub fn TreeIter(comptime K: type, comptime stack_size: usize) type {
     return struct {
         const Self = @This();
-        const Node = TreeNode(T);
+        const Node = TreeNode(K);
 
         stack: [stack_size]*const Node = undefined,
         sp: usize = 0,
 
         pub fn init(root: ?*const Node) Self {
-            var iter = Self{};
-            iter.schedule(root);
-            return iter;
+            var self = Self{};
+            self.schedule(root);
+            return self;
         }
 
         fn schedule(self: *Self, node: ?*const Node) void {
@@ -88,12 +137,12 @@ pub fn TreeIter(comptime T: type, comptime stack_size: usize) type {
             }
         }
 
-        pub fn next(self: *Self) ?T {
+        pub fn next(self: *Self) ?K {
             if (self.sp == 0) return null;
             self.sp -= 1;
-            const top = self.stack[self.sp];
-            self.schedule(top.right);
-            return top.key;
+            const node = self.stack[self.sp];
+            self.schedule(node.right);
+            return node.key;
         }
     };
 }
@@ -103,10 +152,10 @@ test TreeIter {
     const Node = TreeNode(u32);
     var root = try Node.create(gpa, 10);
     defer root.deinit(gpa);
-    try root.insert(gpa, 5);
-    try root.insert(gpa, 15);
-    try root.insert(gpa, 11);
-    try root.insert(gpa, 1);
+    root = try root.insertNode(gpa, 5);
+    root = try root.insertNode(gpa, 15);
+    root = try root.insertNode(gpa, 11);
+    root = try root.insertNode(gpa, 1);
 
     var i = root.iter(10);
     try std.testing.expectEqualDeep(1, i.next());
