@@ -100,7 +100,7 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
 
         const Iter = struct {
             stack: [STACK_SIZE]*const Node = undefined,
-            sp: u32 = 0,
+            sp: u8 = 0,
 
             pub fn init(root: ?*const Node) Iter {
                 var self = Iter{};
@@ -140,8 +140,7 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
         };
 
         pub fn keyIterator(node: *const Node) KeyIter {
-            const iter = node.entryIterator();
-            return KeyIter{ .iter = iter };
+            return KeyIter{ .iter = node.entryIterator() };
         }
     };
 }
