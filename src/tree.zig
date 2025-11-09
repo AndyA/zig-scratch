@@ -84,8 +84,8 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             var here = node;
             while (here) |n| {
                 here = switch (cmp(key, n.key)) {
-                    .eq => return n,
                     .lt => n.left,
+                    .eq => return n,
                     .gt => n.right,
                 };
             }
