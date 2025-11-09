@@ -42,10 +42,10 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             return node;
         }
 
-        fn insert(node: *Node, gpa: Allocator, key: K, value: V) Allocator.Error!*Node {
+        fn insertNode(node: *Node, gpa: Allocator, key: K, value: V) Allocator.Error!*Node {
             switch (cmp(key, node.key)) {
-                .lt => node.left = try insertNode(node.left, gpa, key, value),
-                .gt => node.right = try insertNode(node.right, gpa, key, value),
+                .lt => node.left = try insert(node.left, gpa, key, value),
+                .gt => node.right = try insert(node.right, gpa, key, value),
                 .eq => return node,
             }
 
@@ -75,8 +75,8 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             }
         }
 
-        pub fn insertNode(node: ?*Node, gpa: Allocator, key: K, value: V) Allocator.Error!*Node {
-            if (node) |n| return insert(n, gpa, key, value);
+        pub fn insert(node: ?*Node, gpa: Allocator, key: K, value: V) Allocator.Error!*Node {
+            if (node) |n| return insertNode(n, gpa, key, value);
             return Node.create(gpa, key, value);
         }
 
@@ -98,17 +98,17 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             gpa.destroy(self);
         }
 
-        const Iter = struct {
+        const EntryIter = struct {
             stack: [STACK_SIZE]*const Node = undefined,
             sp: u8 = 0,
 
-            pub fn init(root: ?*const Node) Iter {
-                var self = Iter{};
+            pub fn init(root: ?*const Node) EntryIter {
+                var self = EntryIter{};
                 self.schedule(root);
                 return self;
             }
 
-            fn schedule(self: *Iter, node: ?*const Node) void {
+            fn schedule(self: *EntryIter, node: ?*const Node) void {
                 var current = node;
                 while (current) |n| {
                     assert(self.sp < STACK_SIZE);
@@ -118,7 +118,7 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
                 }
             }
 
-            pub fn next(self: *Iter) ?*const Node {
+            pub fn next(self: *EntryIter) ?*const Node {
                 if (self.sp == 0) return null;
                 self.sp -= 1;
                 const node = self.stack[self.sp];
@@ -127,12 +127,12 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             }
         };
 
-        pub fn entryIterator(node: *const Node) Iter {
-            return Iter.init(node);
+        pub fn entryIterator(node: *const Node) EntryIter {
+            return EntryIter.init(node);
         }
 
         const KeyIter = struct {
-            iter: Iter,
+            iter: EntryIter,
             pub fn next(self: *KeyIter) ?K {
                 if (self.iter.next()) |n| return n.key;
                 return null;
@@ -151,8 +151,8 @@ test TreeNode {
     var root = try Node.create(gpa, 10, {});
     defer root.deinit(gpa);
     try std.testing.expect(root.key == 10);
-    root = try root.insertNode(gpa, 5, {});
-    root = try root.insertNode(gpa, 15, {});
+    root = try root.insert(gpa, 5, {});
+    root = try root.insert(gpa, 15, {});
     const n1 = root.find(5);
     const n2 = root.find(15);
     const n3 = root.find(11);
@@ -168,7 +168,7 @@ test "Tree balance" {
     defer root.deinit(gpa);
 
     for (2..1000) |i| {
-        root = try root.insertNode(gpa, @intCast(i), {});
+        root = try root.insert(gpa, @intCast(i), {});
     }
 
     try std.testing.expectEqual(10, root.height);
@@ -179,10 +179,10 @@ test "iter" {
     const Node = TreeNode(u32, void, NumCompare(u32));
     var root = try Node.create(gpa, 10, {});
     defer root.deinit(gpa);
-    root = try root.insertNode(gpa, 5, {});
-    root = try root.insertNode(gpa, 15, {});
-    root = try root.insertNode(gpa, 11, {});
-    root = try root.insertNode(gpa, 1, {});
+    root = try root.insert(gpa, 5, {});
+    root = try root.insert(gpa, 15, {});
+    root = try root.insert(gpa, 11, {});
+    root = try root.insert(gpa, 1, {});
 
     var i = root.keyIterator();
     try std.testing.expectEqualDeep(1, i.next());
