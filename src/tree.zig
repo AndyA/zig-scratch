@@ -1,12 +1,7 @@
 pub fn NumCompare(comptime T: type) fn (T, T) Order {
     return struct {
         pub fn inner(a: T, b: T) Order {
-            return if (a < b)
-                .lt
-            else if (a > b)
-                .gt
-            else
-                .eq;
+            return std.math.order(a, b);
         }
     }.inner;
 }
@@ -85,12 +80,14 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             return Node.create(gpa, key, value);
         }
 
-        pub fn find(self: *const Node, key: K) ?*const Node {
-            if (key == self.key) return self;
-            if (key < self.key) {
-                if (self.left) |left| return left.find(key);
-            } else {
-                if (self.right) |right| return right.find(key);
+        pub fn find(node: ?*const Node, key: K) ?*const Node {
+            var here = node;
+            while (here) |n| {
+                here = switch (cmp(key, n.key)) {
+                    .eq => return n,
+                    .lt => n.left,
+                    .gt => n.right,
+                };
             }
             return null;
         }
