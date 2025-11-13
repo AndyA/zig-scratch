@@ -22,7 +22,7 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
 
         key: K,
         value: V,
-        height: i32 = 1,
+        height: u8 = 1,
         left: ?*Node = null,
         right: ?*Node = null,
 
@@ -32,7 +32,7 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             return node;
         }
 
-        fn getHeight(node: ?*const Node) i32 {
+        fn getHeight(node: ?*const Node) u8 {
             if (node) |n| return n.height;
             return 0;
         }
