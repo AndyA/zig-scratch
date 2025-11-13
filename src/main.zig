@@ -9,7 +9,7 @@ pub fn main() !void {
         std.debug.print("Loading {s}\n", .{arg});
         const src = try std.fs.cwd().readFileAlloc(arg, gpa, .unlimited);
         defer gpa.free(src);
-        std.debug.print("Loaded {d} bytes\n", .{src.len});
+        std.debug.print("Loaded 0x{x} bytes\n", .{src.len});
     }
 }
 

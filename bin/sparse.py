@@ -1,7 +1,7 @@
 import os
 
-MIN_SIZE = 1431655677
-MAX_SIZE = 1431655680
+MIN_SIZE = 0x555554F8
+MAX_SIZE = 0x55555508
 
 
 def step_size(size: int) -> int:
@@ -16,7 +16,7 @@ def make_file(path: str, size: int) -> None:
 
 size = MIN_SIZE
 for i in range(100):
-    print(size)
+    print(hex(size))
     make_file(f"tmp/f{i:02}.bin", size)
     if size > MAX_SIZE:
         break
