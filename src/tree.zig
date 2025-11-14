@@ -32,6 +32,12 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
             return node;
         }
 
+        pub fn deinit(self: *Node, gpa: Allocator) void {
+            if (self.left) |left| left.deinit(gpa);
+            if (self.right) |right| right.deinit(gpa);
+            gpa.destroy(self);
+        }
+
         fn getHeight(node: ?*const Node) u8 {
             if (node) |n| return n.height;
             return 0;
@@ -90,12 +96,6 @@ pub fn TreeNode(comptime K: type, comptime V: type, comptime cmp: fn (K, K) Orde
                 };
             }
             return null;
-        }
-
-        pub fn deinit(self: *Node, gpa: Allocator) void {
-            if (self.left) |left| left.deinit(gpa);
-            if (self.right) |right| right.deinit(gpa);
-            gpa.destroy(self);
         }
 
         const EntryIter = struct {
