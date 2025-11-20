@@ -178,7 +178,7 @@ pub const TokenIter = struct {
     }
 
     fn wantNumber(self: *Self) !void {
-        self.skipDigits();
+        try self.wantDigits();
         if (self.isNext("."))
             try self.wantDigits();
         if (!self.eof()) {
