@@ -235,9 +235,9 @@ pub const TokenIter = struct {
                 self.skipSpace();
                 if (self.eof()) break :parse error.UnexpectedEOF;
 
+                const start = self.pos;
                 switch (self.advance()) {
                     'a'...'z', 'A'...'Z', '_' => {
-                        const start = self.pos - 1;
                         while (!self.eof() and isSymbol(self.peek()))
                             _ = self.advance();
                         const sym = self.src[start..self.pos];
@@ -246,13 +246,11 @@ pub const TokenIter = struct {
                         break :parse .{ .symbol = sym };
                     },
                     '0'...'9' => {
-                        const start = self.pos - 1;
                         try self.wantNumber();
                         const number = try std.fmt.parseFloat(f64, self.src[start..self.pos]);
                         break :parse .{ .number = number };
                     },
                     '"', '\'' => |quote| {
-                        const start = self.pos;
                         while (!self.eof()) {
                             const nc = self.advance();
                             if (nc == quote) break;
@@ -264,7 +262,7 @@ pub const TokenIter = struct {
                         } else {
                             break :parse error.MissingQuote;
                         }
-                        break :parse .{ .string = self.src[start .. self.pos - 1] };
+                        break :parse .{ .string = self.src[start + 1 .. self.pos - 1] };
                     },
                     '+', '-' => |sign| {
                         if (self.isNext("%]")) {
