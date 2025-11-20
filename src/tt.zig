@@ -444,6 +444,17 @@ test TokenIter {
                 .{ .end = .{} },
             },
         },
+        .{
+            .src = "[% << => %]",
+            .want = &[_]T{
+                .{ .start = .{} },
+                .{ .keyword = .@"<" },
+                .{ .keyword = .@"<" },
+                .{ .keyword = .@"=" },
+                .{ .keyword = .@">" },
+                .{ .end = .{} },
+            },
+        },
         .{ .src = "hello [%# INCLUDE foo %] world", .want = &[_]T{
             .{ .literal = "hello " },
             .{ .literal = " world" },
