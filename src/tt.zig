@@ -2,10 +2,79 @@ fn isSymbol(chr: u8) bool {
     return std.ascii.isAlphanumeric(chr) or chr == '_';
 }
 
-const TTError = error{
+pub const TTError = error{
     MissingQuote,
     UnexpectedEOF,
     SyntaxError,
+};
+
+pub const Keyword = enum {
+    @"%",
+    @".",
+    @"=",
+    @"+",
+    @"-",
+    @"_",
+    @";",
+    @"?",
+    @":",
+    @"*",
+    @"/",
+    @"[",
+    @"]",
+    @"(",
+    @")",
+    @"<",
+    @">",
+    @"==",
+    @"<=",
+    @">=",
+    @"<>",
+    @"!=",
+    @"$",
+    AND,
+    BLOCK,
+    BREAK,
+    CALL,
+    CASE,
+    CATCH,
+    CLEAR,
+    DEFAULT,
+    DIV,
+    ELSE,
+    ELSIF,
+    END,
+    FILTER,
+    FINAL,
+    FOR,
+    FOREACH,
+    GET,
+    IF,
+    INCLUDE,
+    INSERT,
+    LAST,
+    MACRO,
+    META,
+    MOD,
+    NEXT,
+    NOT,
+    OR,
+    PERL,
+    PLUGIN,
+    PROCESS,
+    RAWPERL,
+    RETURN,
+    SET,
+    STEP,
+    STOP,
+    SWITCH,
+    THROW,
+    TO,
+    TRY,
+    UNLESS,
+    USE,
+    WHILE,
+    WRAPPER,
 };
 
 pub const TokenIter = struct {
@@ -16,59 +85,8 @@ pub const TokenIter = struct {
     pos: u32 = 0,
     line_number: u32 = 1,
     line_start: u32 = 0,
-    state: enum { TEXT, START, EXPR } = .TEXT,
+    state: enum { TEXT, START, EXPR, COMMENT, BLOCK_COMMENT } = .TEXT,
 
-    pub const Keyword = enum {
-        @"%",
-        @".",
-        @"=",
-        @"+",
-        @"-",
-        @"_",
-        AND,
-        BLOCK,
-        BREAK,
-        CALL,
-        CASE,
-        CATCH,
-        CLEAR,
-        DEFAULT,
-        DIV,
-        ELSE,
-        ELSIF,
-        END,
-        FILTER,
-        FINAL,
-        FOR,
-        FOREACH,
-        GET,
-        IF,
-        INCLUDE,
-        INSERT,
-        LAST,
-        MACRO,
-        META,
-        MOD,
-        NEXT,
-        NOT,
-        OR,
-        PERL,
-        PLUGIN,
-        PROCESS,
-        RAWPERL,
-        RETURN,
-        SET,
-        STEP,
-        STOP,
-        SWITCH,
-        THROW,
-        TO,
-        TRY,
-        UNLESS,
-        USE,
-        WHILE,
-        WRAPPER,
-    };
     const ExprFrame = struct { swallow: bool };
 
     pub const Token = union(enum) {
@@ -145,6 +163,10 @@ pub const TokenIter = struct {
         }
     }
 
+    fn keywordLookup(op: []const u8) ?Keyword {
+        return std.meta.stringToEnum(Keyword, op);
+    }
+
     pub fn next(self: *Self) TTError!?Token {
         if (self.eof()) return null;
         return parse: switch (self.state) {
@@ -171,13 +193,16 @@ pub const TokenIter = struct {
                     if (nc == '-' or nc == '+') {
                         _ = self.advance();
                         break :es .{ .start = .{ .swallow = true } };
+                    } else if (nc == '#') {
+                        self.state = .BLOCK_COMMENT;
+                        continue :parse self.state;
                     }
                 }
                 break :es .{ .start = .{ .swallow = false } };
             },
             .EXPR => expr: {
                 self.skipSpace();
-                if (self.eof()) break :expr error.UnexpectedEOF;
+                if (self.eof()) break :parse error.UnexpectedEOF;
 
                 switch (self.advance()) {
                     'a'...'z', 'A'...'Z', '_' => {
@@ -185,7 +210,7 @@ pub const TokenIter = struct {
                         while (!self.eof() and isSymbol(self.peek()))
                             _ = self.advance();
                         const sym = self.src[start..self.pos];
-                        if (std.meta.stringToEnum(Keyword, sym)) |op|
+                        if (keywordLookup(sym)) |op|
                             break :expr .{ .keyword = op };
                         break :expr .{ .symbol = sym };
                     },
@@ -196,11 +221,11 @@ pub const TokenIter = struct {
                             if (sc == qc) break;
                             if (sc == '\\') {
                                 if (self.eof())
-                                    break :expr error.MissingQuote;
+                                    break :parse error.MissingQuote;
                                 _ = self.advance();
                             }
                         } else {
-                            break :expr error.MissingQuote;
+                            break :parse error.MissingQuote;
                         }
                         break :expr .{ .string = self.src[start .. self.pos - 1] };
                     },
@@ -223,9 +248,49 @@ pub const TokenIter = struct {
 
                         break :expr .{ .keyword = .@"%" };
                     },
-                    '.' => break :expr .{ .keyword = .@"." },
-                    '=' => break :expr .{ .keyword = .@"=" },
-                    else => break :expr error.SyntaxError,
+                    '#' => {
+                        self.state = .COMMENT;
+                        continue :parse self.state;
+                    },
+                    '<', '=', '>', '!' => {
+                        if (!self.eof()) {
+                            switch (self.peek()) {
+                                '>', '=' => {
+                                    const op = self.src[self.pos - 1 .. self.pos + 1];
+                                    if (keywordLookup(op)) |kw| {
+                                        _ = self.advance();
+                                        break :expr .{ .keyword = kw };
+                                    }
+                                },
+                                else => {},
+                            }
+                        }
+                    },
+                    else => {},
+                }
+                // Last resort: look for a single character keyword
+                const op = self.src[self.pos - 1 .. self.pos];
+                if (keywordLookup(op)) |kw|
+                    break :expr .{ .keyword = kw };
+                break :parse error.SyntaxError;
+            },
+            .COMMENT => {
+                while (true) {
+                    if (self.eof()) break :parse error.UnexpectedEOF;
+                    if (self.advance() == '\n') {
+                        self.state = .EXPR;
+                        continue :parse self.state;
+                    }
+                }
+            },
+            .BLOCK_COMMENT => {
+                while (true) {
+                    if (self.eof()) break :parse error.UnexpectedEOF;
+                    const nc = self.advance();
+                    if (nc == '%' and self.isNext("]")) {
+                        self.state = .TEXT;
+                        continue :parse self.state;
+                    }
                 }
             },
         };
@@ -316,6 +381,33 @@ test TokenIter {
             .{ .keyword = .INCLUDE },
             .{ .symbol = "foo" },
             .{ .end = .{ .swallow = false } },
+        } },
+        .{
+            .src = "[% < > <= >= <> = == != $ %]",
+            .want = &[_]T{
+                .{ .start = .{ .swallow = false } },
+                .{ .keyword = .@"<" },
+                .{ .keyword = .@">" },
+                .{ .keyword = .@"<=" },
+                .{ .keyword = .@">=" },
+                .{ .keyword = .@"<>" },
+                .{ .keyword = .@"=" },
+                .{ .keyword = .@"==" },
+                .{ .keyword = .@"!=" },
+                .{ .keyword = .@"$" },
+                .{ .end = .{ .swallow = false } },
+            },
+        },
+        .{ .src = "hello [%# INCLUDE foo %] world", .want = &[_]T{
+            .{ .literal = "hello " },
+            .{ .literal = " world" },
+        } },
+        .{ .src = "hello [% INCLUDE #foo\n %] world", .want = &[_]T{
+            .{ .literal = "hello " },
+            .{ .start = .{ .swallow = false } },
+            .{ .keyword = .INCLUDE },
+            .{ .end = .{ .swallow = false } },
+            .{ .literal = " world" },
         } },
     };
 
