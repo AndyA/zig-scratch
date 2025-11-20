@@ -77,6 +77,18 @@ pub const Keyword = enum {
     WRAPPER,
 };
 
+const ExprFrame = struct { swallow: bool };
+
+pub const Token = union(enum) {
+    literal: []const u8,
+    start: ExprFrame,
+    end: ExprFrame,
+    symbol: []const u8,
+    number: f64,
+    string: []const u8,
+    keyword: Keyword,
+};
+
 pub const TokenIter = struct {
     const Self = @This();
 
@@ -86,17 +98,6 @@ pub const TokenIter = struct {
     line_number: u32 = 1,
     line_start: u32 = 0,
     state: enum { TEXT, START, EXPR, COMMENT, BLOCK_COMMENT } = .TEXT,
-
-    const ExprFrame = struct { swallow: bool };
-
-    pub const Token = union(enum) {
-        literal: []const u8,
-        symbol: []const u8,
-        string: []const u8,
-        start: ExprFrame,
-        end: ExprFrame,
-        keyword: Keyword,
-    };
 
     pub const Location = struct {
         name: []const u8,
@@ -116,7 +117,7 @@ pub const TokenIter = struct {
         };
     }
 
-    pub fn eof(self: *const Self) bool {
+    fn eof(self: *const Self) bool {
         return self.pos == self.src.len;
     }
 
@@ -163,44 +164,74 @@ pub const TokenIter = struct {
         }
     }
 
+    fn skipDigits(self: *Self) void {
+        while (!self.eof()) {
+            if (!std.ascii.isDigit(self.peek())) break;
+            _ = self.advance();
+        }
+    }
+
+    fn wantDigits(self: *Self) !void {
+        const start = self.pos;
+        self.skipDigits();
+        if (start == self.pos) return error.SyntaxError;
+    }
+
+    fn wantNumber(self: *Self) !void {
+        self.skipDigits();
+        if (self.isNext("."))
+            try self.wantDigits();
+        if (!self.eof()) {
+            const nc = self.peek();
+            if (nc == 'e' or nc == 'E') {
+                _ = self.advance();
+                if (self.eof()) return error.SyntaxError;
+                const sign = self.peek();
+                if (sign == '+' or sign == '-')
+                    _ = self.advance();
+                try self.wantDigits();
+            }
+        }
+    }
+
     fn keywordLookup(op: []const u8) ?Keyword {
         return std.meta.stringToEnum(Keyword, op);
     }
 
-    pub fn next(self: *Self) TTError!?Token {
+    pub fn next(self: *Self) !?Token {
         if (self.eof()) return null;
         return parse: switch (self.state) {
-            .TEXT => text: {
+            .TEXT => {
                 const start = self.pos;
 
-                const text = nt: while (!self.eof()) {
+                const text = text: while (!self.eof()) {
                     const nc = self.advance();
                     if (nc == '[' and !self.eof() and self.advance() == '%') {
                         self.state = .START;
-                        break :nt self.src[start .. self.pos - 2];
+                        break :text self.src[start .. self.pos - 2];
                     }
                 } else {
-                    break :nt self.src[start..self.pos];
+                    break :text self.src[start..self.pos];
                 };
 
                 if (text.len == 0) continue :parse self.state;
-                break :text .{ .literal = text };
+                break :parse .{ .literal = text };
             },
-            .START => es: {
+            .START => {
                 self.state = .EXPR;
                 if (!self.eof()) {
                     const nc = self.peek();
                     if (nc == '-' or nc == '+') {
                         _ = self.advance();
-                        break :es .{ .start = .{ .swallow = true } };
+                        break :parse .{ .start = .{ .swallow = true } };
                     } else if (nc == '#') {
                         self.state = .BLOCK_COMMENT;
                         continue :parse self.state;
                     }
                 }
-                break :es .{ .start = .{ .swallow = false } };
+                break :parse .{ .start = .{ .swallow = false } };
             },
-            .EXPR => expr: {
+            .EXPR => {
                 self.skipSpace();
                 if (self.eof()) break :parse error.UnexpectedEOF;
 
@@ -211,8 +242,14 @@ pub const TokenIter = struct {
                             _ = self.advance();
                         const sym = self.src[start..self.pos];
                         if (keywordLookup(sym)) |op|
-                            break :expr .{ .keyword = op };
-                        break :expr .{ .symbol = sym };
+                            break :parse .{ .keyword = op };
+                        break :parse .{ .symbol = sym };
+                    },
+                    '0'...'9' => {
+                        const start = self.pos - 1;
+                        try self.wantNumber();
+                        const number = try std.fmt.parseFloat(f64, self.src[start..self.pos]);
+                        break :parse .{ .number = number };
                     },
                     '"', '\'' => |qc| {
                         const start = self.pos;
@@ -227,26 +264,26 @@ pub const TokenIter = struct {
                         } else {
                             break :parse error.MissingQuote;
                         }
-                        break :expr .{ .string = self.src[start .. self.pos - 1] };
+                        break :parse .{ .string = self.src[start .. self.pos - 1] };
                     },
                     '+', '-' => |pm| {
                         if (self.isNext("%]")) {
                             self.state = .TEXT;
-                            break :expr .{ .end = .{ .swallow = true } };
+                            break :parse .{ .end = .{ .swallow = true } };
                         }
                         switch (pm) {
-                            '+' => break :expr .{ .keyword = .@"+" },
-                            '-' => break :expr .{ .keyword = .@"-" },
+                            '+' => break :parse .{ .keyword = .@"+" },
+                            '-' => break :parse .{ .keyword = .@"-" },
                             else => unreachable,
                         }
                     },
                     '%' => {
                         if (self.isNext("]")) {
                             self.state = .TEXT;
-                            break :expr .{ .end = .{ .swallow = false } };
+                            break :parse .{ .end = .{ .swallow = false } };
                         }
 
-                        break :expr .{ .keyword = .@"%" };
+                        break :parse .{ .keyword = .@"%" };
                     },
                     '#' => {
                         self.state = .COMMENT;
@@ -259,7 +296,7 @@ pub const TokenIter = struct {
                                     const op = self.src[self.pos - 1 .. self.pos + 1];
                                     if (keywordLookup(op)) |kw| {
                                         _ = self.advance();
-                                        break :expr .{ .keyword = kw };
+                                        break :parse .{ .keyword = kw };
                                     }
                                 },
                                 else => {},
@@ -271,7 +308,7 @@ pub const TokenIter = struct {
                 // Last resort: look for a single character keyword
                 const op = self.src[self.pos - 1 .. self.pos];
                 if (keywordLookup(op)) |kw|
-                    break :expr .{ .keyword = kw };
+                    break :parse .{ .keyword = kw };
                 break :parse error.SyntaxError;
             },
             .COMMENT => {
@@ -299,7 +336,7 @@ pub const TokenIter = struct {
 
 test TokenIter {
     const gpa = testing.allocator;
-    const T = TokenIter.Token;
+    const T = Token;
     const cases = &[_]struct { src: []const u8, want: []const T }{
         .{ .src = "", .want = &[_]T{} },
         .{ .src = "hello", .want = &[_]T{.{ .literal = "hello" }} },
@@ -380,6 +417,15 @@ test TokenIter {
             .{ .start = .{ .swallow = false } },
             .{ .keyword = .INCLUDE },
             .{ .symbol = "foo" },
+            .{ .end = .{ .swallow = false } },
+        } },
+        .{ .src = "[% 1 -1 1e3 1.0 %]", .want = &[_]T{
+            .{ .start = .{ .swallow = false } },
+            .{ .number = 1 },
+            .{ .keyword = .@"-" },
+            .{ .number = 1 },
+            .{ .number = 1e3 },
+            .{ .number = 1.0 },
             .{ .end = .{ .swallow = false } },
         } },
         .{
