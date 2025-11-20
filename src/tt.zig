@@ -178,7 +178,7 @@ pub const TokenIter = struct {
     }
 
     fn wantNumber(self: *Self) !void {
-        try self.wantDigits();
+        self.skipDigits();
         if (self.isNext("."))
             try self.wantDigits();
         if (!self.eof()) {
@@ -251,12 +251,12 @@ pub const TokenIter = struct {
                         const number = try std.fmt.parseFloat(f64, self.src[start..self.pos]);
                         break :parse .{ .number = number };
                     },
-                    '"', '\'' => |qc| {
+                    '"', '\'' => |quote| {
                         const start = self.pos;
                         while (!self.eof()) {
-                            const sc = self.advance();
-                            if (sc == qc) break;
-                            if (sc == '\\') {
+                            const nc = self.advance();
+                            if (nc == quote) break;
+                            if (nc == '\\') {
                                 if (self.eof())
                                     break :parse error.MissingQuote;
                                 _ = self.advance();
@@ -266,12 +266,12 @@ pub const TokenIter = struct {
                         }
                         break :parse .{ .string = self.src[start .. self.pos - 1] };
                     },
-                    '+', '-' => |pm| {
+                    '+', '-' => |sign| {
                         if (self.isNext("%]")) {
                             self.state = .TEXT;
                             break :parse .{ .end = .{ .swallow = true } };
                         }
-                        switch (pm) {
+                        switch (sign) {
                             '+' => break :parse .{ .keyword = .@"+" },
                             '-' => break :parse .{ .keyword = .@"-" },
                             else => unreachable,
