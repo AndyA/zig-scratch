@@ -66,8 +66,6 @@ pub const TokenIter = struct {
         USE,
         WHILE,
         WRAPPER,
-        ZIG,
-        RAWZIG,
     };
     const ExprFrame = struct { swallow: bool };
 
