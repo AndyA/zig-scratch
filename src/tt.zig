@@ -77,7 +77,7 @@ pub const Keyword = enum {
     WRAPPER,
 };
 
-const ExprFrame = struct { swallow: bool };
+const ExprFrame = struct { swallow: bool = false };
 
 pub const Token = union(enum) {
     literal: []const u8,
@@ -231,7 +231,7 @@ pub const TokenIter = struct {
                         continue :parse self.state;
                     }
                 }
-                break :parse .{ .start = .{ .swallow = false } };
+                break :parse .{ .start = .{} };
             },
             .EXPR => {
                 self.skipSpace();
@@ -280,7 +280,7 @@ pub const TokenIter = struct {
                     '%' => {
                         if (self.isNext("]")) {
                             self.state = .TEXT;
-                            break :parse .{ .end = .{ .swallow = false } };
+                            break :parse .{ .end = .{} };
                         }
 
                         break :parse .{ .keyword = .@"%" };
@@ -341,15 +341,15 @@ test TokenIter {
         .{ .src = "", .want = &[_]T{} },
         .{ .src = "hello", .want = &[_]T{.{ .literal = "hello" }} },
         .{ .src = "[% %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
-            .{ .end = .{ .swallow = false } },
+            .{ .start = .{} },
+            .{ .end = .{} },
         } },
         .{ .src = "[%- %]", .want = &[_]T{
             .{ .start = .{ .swallow = true } },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% -%]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .end = .{ .swallow = true } },
         } },
         .{ .src = "[%- -%]", .want = &[_]T{
@@ -363,75 +363,75 @@ test TokenIter {
         } },
         .{ .src = "[%+ %]", .want = &[_]T{
             .{ .start = .{ .swallow = true } },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% + %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .keyword = .@"+" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% _ %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .keyword = ._ },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% +%]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .end = .{ .swallow = true } },
         } },
         .{ .src = "[% '[%' %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .string = "[%" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "hello [% %] world", .want = &[_]T{
             .{ .literal = "hello " },
-            .{ .start = .{ .swallow = false } },
-            .{ .end = .{ .swallow = false } },
+            .{ .start = .{} },
+            .{ .end = .{} },
             .{ .literal = " world" },
         } },
         .{ .src = "hello [% foo %] world", .want = &[_]T{
             .{ .literal = "hello " },
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .symbol = "foo" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
             .{ .literal = " world" },
         } },
         .{ .src = "hello [% foo.bar %] world", .want = &[_]T{
             .{ .literal = "hello " },
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .symbol = "foo" },
             .{ .keyword = .@"." },
             .{ .symbol = "bar" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
             .{ .literal = " world" },
         } },
         .{ .src = "[% foo = \"Hello\" %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .symbol = "foo" },
             .{ .keyword = .@"=" },
             .{ .string = "Hello" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% INCLUDE foo %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .keyword = .INCLUDE },
             .{ .symbol = "foo" },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{ .src = "[% 1 -1 1e3 1.0 %]", .want = &[_]T{
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .number = 1 },
             .{ .keyword = .@"-" },
             .{ .number = 1 },
             .{ .number = 1e3 },
             .{ .number = 1.0 },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
         } },
         .{
             .src = "[% < > <= >= <> = == != $ %]",
             .want = &[_]T{
-                .{ .start = .{ .swallow = false } },
+                .{ .start = .{} },
                 .{ .keyword = .@"<" },
                 .{ .keyword = .@">" },
                 .{ .keyword = .@"<=" },
@@ -441,7 +441,7 @@ test TokenIter {
                 .{ .keyword = .@"==" },
                 .{ .keyword = .@"!=" },
                 .{ .keyword = .@"$" },
-                .{ .end = .{ .swallow = false } },
+                .{ .end = .{} },
             },
         },
         .{ .src = "hello [%# INCLUDE foo %] world", .want = &[_]T{
@@ -450,9 +450,9 @@ test TokenIter {
         } },
         .{ .src = "hello [% INCLUDE #foo\n %] world", .want = &[_]T{
             .{ .literal = "hello " },
-            .{ .start = .{ .swallow = false } },
+            .{ .start = .{} },
             .{ .keyword = .INCLUDE },
-            .{ .end = .{ .swallow = false } },
+            .{ .end = .{} },
             .{ .literal = " world" },
         } },
     };
