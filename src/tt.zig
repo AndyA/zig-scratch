@@ -204,6 +204,8 @@ pub const TokenIter = struct {
             .TEXT => {
                 const start = self.pos;
 
+                assert(!self.eof());
+
                 const text = text: while (!self.eof()) {
                     const nc = self.advance();
                     if (nc == '[' and !self.eof() and self.advance() == '%') {
