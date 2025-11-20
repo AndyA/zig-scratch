@@ -4,6 +4,8 @@ fn isSymbol(chr: u8) bool {
 
 const TTError = error{
     MissingQuote,
+    UnexpectedEOF,
+    SyntaxError,
 };
 
 pub const TokenIter = struct {
@@ -145,7 +147,7 @@ pub const TokenIter = struct {
 
     pub fn next(self: *Self) TTError!?Token {
         if (self.eof()) return null;
-        return switch (self.state) {
+        return parse: switch (self.state) {
             .TEXT => text: {
                 const start = self.pos;
 
@@ -159,7 +161,8 @@ pub const TokenIter = struct {
                     break :nt self.src[start..self.pos];
                 };
 
-                break :text if (text.len > 0) .{ .literal = text } else self.next();
+                if (text.len == 0) continue :parse self.state;
+                break :text .{ .literal = text };
             },
             .START => es: {
                 self.state = .EXPR;
@@ -174,7 +177,7 @@ pub const TokenIter = struct {
             },
             .EXPR => expr: {
                 self.skipSpace();
-                if (self.eof()) break :expr null;
+                if (self.eof()) break :expr error.UnexpectedEOF;
 
                 switch (self.advance()) {
                     'a'...'z', 'A'...'Z', '_' => {
@@ -222,7 +225,7 @@ pub const TokenIter = struct {
                     },
                     '.' => break :expr .{ .keyword = .@"." },
                     '=' => break :expr .{ .keyword = .@"=" },
-                    else => unreachable,
+                    else => break :expr error.SyntaxError,
                 }
             },
         };
