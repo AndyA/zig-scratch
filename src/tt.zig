@@ -45,12 +45,12 @@ pub const TokenIter = struct {
     }
 
     fn peek(self: *const Self) u8 {
-        std.debug.assert(!self.eof());
+        assert(!self.eof());
         return self.src[self.pos];
     }
 
     fn advance(self: *Self) u8 {
-        std.debug.assert(!self.eof());
+        assert(!self.eof());
         const nc = self.peek();
         self.pos += 1;
         if (nc == '\n') {
@@ -197,3 +197,4 @@ test TT {
 const std = @import("std");
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
