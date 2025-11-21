@@ -86,7 +86,7 @@ pub const Token = union(enum) {
     end: ExprFrame,
     symbol: []const u8,
     number: f64,
-    string: []const u8,
+    sq_string: []const u8,
     dq_string: []const u8,
     keyword: Keyword,
 };
@@ -270,7 +270,7 @@ pub const TokenIter = struct {
                         break :parse if (quote == '"')
                             .{ .dq_string = body }
                         else
-                            .{ .string = body };
+                            .{ .sq_string = body };
                     },
                     '+', '-' => |sign| {
                         if (self.isNext("%]")) {
@@ -387,7 +387,7 @@ test TokenIter {
         } },
         .{ .src = "[% '[%' %]", .want = &[_]T{
             .{ .start = .{} },
-            .{ .string = "[%" },
+            .{ .sq_string = "[%" },
             .{ .end = .{} },
         } },
         .{ .src = "hello [% %] world", .want = &[_]T{
@@ -416,7 +416,7 @@ test TokenIter {
             .{ .start = .{} },
             .{ .symbol = "foo" },
             .{ .keyword = .@"=" },
-            .{ .string = "Hello" },
+            .{ .sq_string = "Hello" },
             .{ .end = .{} },
         } },
         .{ .src = "[% foo = \"Hello\" %]", .want = &[_]T{
