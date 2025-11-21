@@ -246,9 +246,10 @@ pub const TokenIter = struct {
                         while (!self.eof() and isSymbol(self.peek()))
                             _ = self.advance();
                         const sym = self.src[start..self.pos];
-                        if (keywordLookup(sym)) |op|
-                            break :parse .{ .keyword = op };
-                        break :parse .{ .symbol = sym };
+                        break :parse if (keywordLookup(sym)) |op|
+                            .{ .keyword = op }
+                        else
+                            .{ .symbol = sym };
                     },
                     '0'...'9' => {
                         try self.wantNumber();
@@ -278,11 +279,7 @@ pub const TokenIter = struct {
                             self.state = .TEXT;
                             break :parse .{ .end = .{ .swallow = true } };
                         }
-                        switch (sign) {
-                            '+' => break :parse .{ .keyword = .@"+" },
-                            '-' => break :parse .{ .keyword = .@"-" },
-                            else => unreachable,
-                        }
+                        break :parse .{ .keyword = if (sign == '+') .@"+" else .@"-" };
                     },
                     '%' => {
                         if (self.isNext("]")) {
