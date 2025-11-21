@@ -96,6 +96,7 @@ pub const TokenIter = struct {
 
     name: []const u8,
     src: []const u8,
+
     pos: u32 = 0,
     line_number: u32 = 1,
     line_start: u32 = 0,
