@@ -32,6 +32,7 @@ pub const Keyword = enum {
     @"<>",
     @"!=",
     @"$",
+    @"|",
     AND,
     BLOCK,
     BREAK,
