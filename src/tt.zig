@@ -87,6 +87,7 @@ pub const Token = union(enum) {
     symbol: []const u8,
     number: f64,
     string: []const u8,
+    dq_string: []const u8,
     keyword: Keyword,
 };
 
@@ -265,7 +266,11 @@ pub const TokenIter = struct {
                         } else {
                             break :parse error.MissingQuote;
                         }
-                        break :parse .{ .string = self.src[start + 1 .. self.pos - 1] };
+                        const body = self.src[start + 1 .. self.pos - 1];
+                        break :parse if (quote == '"')
+                            .{ .dq_string = body }
+                        else
+                            .{ .string = body };
                     },
                     '+', '-' => |sign| {
                         if (self.isNext("%]")) {
@@ -407,11 +412,18 @@ test TokenIter {
             .{ .end = .{} },
             .{ .literal = " world" },
         } },
-        .{ .src = "[% foo = \"Hello\" %]", .want = &[_]T{
+        .{ .src = "[% foo = 'Hello' %]", .want = &[_]T{
             .{ .start = .{} },
             .{ .symbol = "foo" },
             .{ .keyword = .@"=" },
             .{ .string = "Hello" },
+            .{ .end = .{} },
+        } },
+        .{ .src = "[% foo = \"Hello\" %]", .want = &[_]T{
+            .{ .start = .{} },
+            .{ .symbol = "foo" },
+            .{ .keyword = .@"=" },
+            .{ .dq_string = "Hello" },
             .{ .end = .{} },
         } },
         .{ .src = "[% INCLUDE foo %]", .want = &[_]T{
