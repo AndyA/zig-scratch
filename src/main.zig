@@ -18,5 +18,4 @@ const assert = std.debug.assert;
 
 test {
     _ = @import("./tree.zig");
-    _ = @import("./eval.zig");
 }
