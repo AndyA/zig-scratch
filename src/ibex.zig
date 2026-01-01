@@ -98,13 +98,10 @@ pub fn IbexInt(comptime T: type) !type {
 
         pub fn read(r: *ByteReader) T {
             const nb = r.next();
+            const bytes = repLength(nb);
             if (nb >= LIN_HI) {
-                const bytes = nb - LIN_HI + 1;
-                assert(bytes < MAX_BYTES);
                 return LIMITS[bytes - 1] + readBytes(r, bytes, 0x00);
             } else if (nb < LIN_LO) {
-                const bytes = LIN_LO - nb;
-                assert(bytes < MAX_BYTES);
                 return ~(LIMITS[bytes - 1] + readBytes(r, bytes, 0xff));
             } else {
                 return @as(T, @intCast(nb)) - BIAS;
