@@ -40,37 +40,61 @@ pub const ByteReader = struct {
     }
 };
 
-pub fn IbexInt(comptime T: type) !type {
-    const BIAS = 0x80;
-    const LIN_LO = 0x08;
-    const LIN_HI = 0xf8;
-    const POS_BIAS = LIN_HI - BIAS;
-    const NEG_BIAS = LIN_LO - BIAS;
-    const MAX_BYTES = LIN_LO + 1;
+const BIAS = 0x80;
+const LIN_LO = 0x08;
+const LIN_HI = 0xf8;
+const POS_BIAS = LIN_HI - BIAS;
+const NEG_BIAS = LIN_LO - BIAS;
+const MAX_BYTES = LIN_LO + 1;
 
+const POS_LIMITS: [MAX_BYTES]i72 = blk: {
+    var limits: [MAX_BYTES]i72 = undefined;
+
+    var limit: i72 = POS_BIAS;
+    for (1..MAX_BYTES) |len| {
+        limits[len - 1] = limit;
+        limit += @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
+    }
+
+    limits[MAX_BYTES - 1] = limit;
+
+    break :blk limits;
+};
+
+const NEG_LIMITS: [MAX_BYTES]i72 = blk: {
+    var limits: [MAX_BYTES]i72 = undefined;
+
+    var limit: i72 = NEG_BIAS;
+    for (1..MAX_BYTES) |len| {
+        limits[len - 1] = limit;
+        limit -= @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
+    }
+
+    limits[MAX_BYTES - 1] = limit;
+
+    break :blk limits;
+};
+
+pub fn IbexInt(comptime T: type) !type {
     return struct {
         pub fn read(r: *ByteReader) T {
             const nb = r.next();
             if (nb >= LIN_HI) {
-                const extra = nb - LIN_HI;
-                var adj: T = 1;
+                const extra = nb - LIN_HI + 1;
+                assert(extra < MAX_BYTES);
                 var acc: T = 0;
                 for (0..extra) |_| {
-                    acc = (acc << 8) + r.next();
-                    adj = (adj << 8) + 1;
+                    acc = (acc << 8) + r.next() + 1;
                 }
-                acc = (acc << 8) + r.next();
-                return POS_BIAS - 1 + (acc + adj);
+                return POS_BIAS - 1 + acc;
             } else if (nb < LIN_LO) {
-                const extra = LIN_LO - 1 - nb;
-                var adj: T = 1;
+                const extra = LIN_LO - nb;
+                assert(extra < MAX_BYTES);
                 var acc: T = 0;
                 for (0..extra) |_| {
-                    acc = (acc << 8) + (r.next() ^ 0xff);
-                    adj = (adj << 8) + 1;
+                    acc = (acc << 8) + (r.next() ^ 0xff) + 1;
                 }
-                acc = (acc << 8) + (r.next() ^ 0xff);
-                return NEG_BIAS - (acc + adj);
+                return NEG_BIAS - acc;
             } else {
                 return @as(T, @intCast(nb)) - BIAS;
             }
@@ -78,23 +102,15 @@ pub fn IbexInt(comptime T: type) !type {
 
         pub fn length(value: T) usize {
             if (value >= 0) {
-                var limit: i72 = POS_BIAS;
-                inline for (1..MAX_BYTES) |len| {
+                inline for (POS_LIMITS, 1..) |limit, len| {
                     if (value < limit)
                         return len;
-                    limit += @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
                 }
-                if (value < limit)
-                    return MAX_BYTES;
             } else {
-                var limit: i72 = NEG_BIAS;
-                inline for (1..MAX_BYTES) |len| {
+                inline for (NEG_LIMITS, 1..) |limit, len| {
                     if (value >= limit)
                         return len;
-                    limit -= @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
                 }
-                if (value >= limit)
-                    return MAX_BYTES;
             }
             unreachable;
         }
