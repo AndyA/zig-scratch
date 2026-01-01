@@ -181,6 +181,19 @@ test "round trip" {
     }
 }
 
+// fn testFoo(value: i72) void {
+//     var buf: [9]u8 = undefined;
+//     const ii = try IbexInt(i72);
+//     var w = ByteWriter{ .buf = &buf };
+//     ii.write(&w, value);
+//     std.debug.print("{d} => {any}\n", .{ value, w.slice() });
+// }
+
+// test "foo" {
+//     testFoo(std.math.maxInt(i64));
+//     testFoo(std.math.minInt(i64));
+// }
+
 const IntTestCase = struct { buf: []const u8, flip: u8 = 0x00, want: i72 };
 const int_test_cases = &[_]IntTestCase{
     .{ .buf = &.{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -18519084246547628408 },
