@@ -47,27 +47,13 @@ const POS_BIAS = LIN_HI - BIAS;
 const NEG_BIAS = LIN_LO - BIAS;
 const MAX_BYTES = LIN_LO + 1;
 
-const POS_LIMITS: [MAX_BYTES]i72 = blk: {
+const LIMITS: [MAX_BYTES]i72 = blk: {
     var limits: [MAX_BYTES]i72 = undefined;
 
     var limit: i72 = POS_BIAS;
     for (1..MAX_BYTES) |len| {
         limits[len - 1] = limit;
         limit += @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
-    }
-
-    limits[MAX_BYTES - 1] = limit;
-
-    break :blk limits;
-};
-
-const NEG_LIMITS: [MAX_BYTES]i72 = blk: {
-    var limits: [MAX_BYTES]i72 = undefined;
-
-    var limit: i72 = NEG_BIAS;
-    for (1..MAX_BYTES) |len| {
-        limits[len - 1] = limit;
-        limit -= @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
     }
 
     limits[MAX_BYTES - 1] = limit;
@@ -101,16 +87,10 @@ pub fn IbexInt(comptime T: type) !type {
         }
 
         pub fn length(value: T) usize {
-            if (value >= 0) {
-                inline for (POS_LIMITS, 1..) |limit, len| {
-                    if (value < limit)
-                        return len;
-                }
-            } else {
-                inline for (NEG_LIMITS, 1..) |limit, len| {
-                    if (value >= limit)
-                        return len;
-                }
+            const abs = if (value < 0) value ^ -1 else value;
+            inline for (LIMITS, 1..) |limit, len| {
+                if (abs < limit)
+                    return len;
             }
             unreachable;
         }
