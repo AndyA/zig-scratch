@@ -141,7 +141,7 @@ pub fn IbexInt(comptime T: type) !type {
 }
 
 test "read" {
-    for (int_test_cases) |tc| {
+    for (test_cases) |tc| {
         const ii = try IbexInt(i72);
         var r = ByteReader{ .buf = tc.buf, .flip = tc.flip };
         try std.testing.expectEqual(tc.want, ii.read(&r));
@@ -150,7 +150,7 @@ test "read" {
 }
 
 test "write" {
-    for (int_test_cases) |tc| {
+    for (test_cases) |tc| {
         const ii = try IbexInt(i72);
         var buf: [9]u8 = undefined;
         var w = ByteWriter{ .buf = &buf, .flip = tc.flip };
@@ -161,7 +161,7 @@ test "write" {
 }
 
 test "length" {
-    for (int_test_cases) |tc| {
+    for (test_cases) |tc| {
         const ii = try IbexInt(i72);
         try std.testing.expectEqual(tc.buf.len, ii.length(tc.want));
     }
@@ -194,11 +194,20 @@ test "round trip" {
 //     testFoo(std.math.minInt(i64));
 // }
 
-const IntTestCase = struct { buf: []const u8, flip: u8 = 0x00, want: i72 };
-const int_test_cases = &[_]IntTestCase{
-    .{ .buf = &.{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -18519084246547628408 },
-    .{ .buf = &.{ 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = -72340172838076793 },
-    .{ .buf = &.{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -72340172838076792 },
+const TestCase = struct { buf: []const u8, flip: u8 = 0x00, want: i72 };
+const test_cases = &[_]TestCase{
+    .{
+        .buf = &.{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        .want = -18519084246547628408,
+    },
+    .{
+        .buf = &.{ 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
+        .want = -72340172838076793,
+    },
+    .{
+        .buf = &.{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        .want = -72340172838076792,
+    },
     .{ .buf = &.{ 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = -282578800148857 },
     .{ .buf = &.{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -282578800148856 },
     .{ .buf = &.{ 0x02, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = -1103823438201 },
@@ -233,7 +242,16 @@ const int_test_cases = &[_]IntTestCase{
     .{ .buf = &.{ 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = 1103823438200 },
     .{ .buf = &.{ 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 282578800148855 },
     .{ .buf = &.{ 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = 282578800148856 },
-    .{ .buf = &.{ 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 72340172838076791 },
-    .{ .buf = &.{ 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = 72340172838076792 },
-    .{ .buf = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 18519084246547628407 },
+    .{
+        .buf = &.{ 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
+        .want = 72340172838076791,
+    },
+    .{
+        .buf = &.{ 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        .want = 72340172838076792,
+    },
+    .{
+        .buf = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
+        .want = 18519084246547628407,
+    },
 };
