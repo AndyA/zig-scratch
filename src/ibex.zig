@@ -48,28 +48,36 @@ pub fn IbexInt(comptime T: type) !type {
     const LIN_LO = 0x08;
     const LIN_HI = 0xf8;
     comptime {
-        const UT = switch (@typeInfo(T)) {
-            .int => |info| ut: {
-                if (info.signedness != .signed) return error.MustBeSignedInt;
-                break :ut @Int(.unsigned, info.bits);
-            },
-            else => return error.MustBeSignedInt,
-        };
+        // const UT = switch (@typeInfo(T)) {
+        //     .int => |info| ut: {
+        //         if (info.signedness != .signed) return error.MustBeSignedInt;
+        //         break :ut @Int(.unsigned, info.bits);
+        //     },
+        //     else => return error.MustBeSignedInt,
+        // };
         return struct {
             pub fn read(r: *ByteReader) T {
                 const nb = r.next();
                 if (nb >= LIN_HI) {
                     const extra = nb - LIN_HI;
-                    var adj: UT = 1;
-                    var acc: UT = 0;
+                    var adj: T = 1;
+                    var acc: T = 0;
                     for (0..extra) |_| {
                         acc = (acc << 8) + r.next();
                         adj = (adj << 8) + 1;
                     }
                     acc = (acc << 8) + r.next();
-                    return @as(T, @intCast(adj + LIN_HI - 0x80 - 1 + acc));
+                    return 119 + (acc + adj);
                 } else if (nb < LIN_LO) {
-                    unreachable;
+                    const extra = 7 - nb;
+                    var adj: T = 1;
+                    var acc: T = 0;
+                    for (0..extra) |_| {
+                        acc = (acc << 8) + (r.next() ^ 0xff);
+                        adj = (adj << 8) + 1;
+                    }
+                    acc = (acc << 8) + (r.next() ^ 0xff);
+                    return -120 - (acc + adj);
                 } else {
                     return @as(T, @intCast(nb)) - 0x80;
                 }
@@ -93,7 +101,13 @@ test IbexInt {
         .{ .bytes = &.{0x80}, .want = 0 },
         .{ .bytes = &.{0x7f}, .want = -1 },
         .{ .bytes = &.{0x08}, .want = -120 },
-        // .{ .bytes = &.{ 0x07, 0xff }, .want = -121 },
+        .{ .bytes = &.{ 0x07, 0xff }, .want = -121 },
+        .{ .bytes = &.{ 0x07, 0x00 }, .want = -376 },
+        .{ .bytes = &.{ 0x06, 0xff, 0xff }, .want = -377 },
+        .{ .bytes = &.{ 0x06, 0x00, 0x00 }, .want = -65912 },
+        .{ .bytes = &.{ 0x05, 0xff, 0xff, 0xff }, .want = -65913 },
+        .{ .bytes = &.{ 0x05, 0x00, 0x00, 0x00 }, .want = -16843128 },
+        .{ .bytes = &.{ 0x04, 0xff, 0xff, 0xff, 0xff }, .want = -16843129 },
     };
 
     for (cases) |tc| {
