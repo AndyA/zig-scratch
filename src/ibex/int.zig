@@ -109,6 +109,7 @@ pub fn IbexInt(comptime T: type) !type {
         }
 
         fn writeBytes(w: *ByteWriter, bytes: usize, comptime flip: u8, value: T) void {
+            assert(bytes < MAX_BYTES);
             for (0..bytes) |i| {
                 const pos: u7 = @intCast(bytes - 1 - i);
                 const byte: u8 = @intCast((value >> (pos * 8)) & 0xff);
