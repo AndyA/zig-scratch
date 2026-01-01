@@ -140,7 +140,7 @@ pub fn IbexInt(comptime T: type) !type {
     };
 }
 
-test "IbexInt.read" {
+test "read" {
     for (int_test_cases) |tc| {
         const ii = try IbexInt(i72);
         var r = ByteReader{ .buf = tc.buf, .flip = tc.flip };
@@ -149,7 +149,7 @@ test "IbexInt.read" {
     }
 }
 
-test "IbexInt.write" {
+test "write" {
     for (int_test_cases) |tc| {
         const ii = try IbexInt(i72);
         var buf: [9]u8 = undefined;
@@ -160,10 +160,24 @@ test "IbexInt.write" {
     }
 }
 
-test "IbexInt.length" {
+test "length" {
     for (int_test_cases) |tc| {
         const ii = try IbexInt(i72);
         try std.testing.expectEqual(tc.buf.len, ii.length(tc.want));
+    }
+}
+
+test "round trip" {
+    var buf: [9]u8 = undefined;
+    const ii = try IbexInt(i72);
+    for (0..140000) |offset| {
+        const value = @as(i72, @intCast(offset)) - 70000;
+        var w = ByteWriter{ .buf = &buf };
+        ii.write(&w, value);
+        try std.testing.expectEqual(w.pos, ii.length(value));
+        var r = ByteReader{ .buf = w.slice() };
+        const got = ii.read(&r);
+        try std.testing.expectEqual(value, got);
     }
 }
 
