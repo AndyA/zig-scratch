@@ -46,6 +46,7 @@ pub fn IbexInt(comptime T: type) !type {
     const LIN_HI = 0xf8;
     const POS_BIAS = LIN_HI - BIAS;
     const NEG_BIAS = LIN_LO - BIAS;
+    const MAX_BYTES = LIN_LO + 1;
 
     return struct {
         pub fn read(r: *ByteReader) T {
@@ -77,19 +78,23 @@ pub fn IbexInt(comptime T: type) !type {
 
         pub fn length(value: T) usize {
             if (value >= 0) {
-                var limit: i80 = POS_BIAS;
-                inline for (1..10) |len| {
+                var limit: i72 = POS_BIAS;
+                inline for (1..MAX_BYTES) |len| {
                     if (value < limit)
                         return len;
-                    limit += @as(i80, 1) << (@as(u7, @intCast(len)) * 8);
+                    limit += @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
                 }
+                if (value < limit)
+                    return MAX_BYTES;
             } else {
-                var limit: i80 = NEG_BIAS;
-                inline for (1..10) |len| {
+                var limit: i72 = NEG_BIAS;
+                inline for (1..MAX_BYTES) |len| {
                     if (value >= limit)
                         return len;
-                    limit -= @as(i80, 1) << (@as(u7, @intCast(len)) * 8);
+                    limit -= @as(i72, 1) << (@as(u7, @intCast(len)) * 8);
                 }
+                if (value >= limit)
+                    return MAX_BYTES;
             }
             unreachable;
         }
@@ -98,7 +103,7 @@ pub fn IbexInt(comptime T: type) !type {
 
 test "IbexInt.read" {
     for (int_test_cases) |tc| {
-        const ii = try IbexInt(i64);
+        const ii = try IbexInt(i72);
         var r = ByteReader{ .bytes = tc.bytes, .flip = tc.flip };
         try std.testing.expectEqual(tc.want, ii.read(&r));
         try std.testing.expectEqual(tc.bytes.len, r.pos);
@@ -107,14 +112,14 @@ test "IbexInt.read" {
 
 test "IbexInt.length" {
     for (int_test_cases) |tc| {
-        const ii = try IbexInt(i64);
+        const ii = try IbexInt(i72);
         try std.testing.expectEqual(tc.bytes.len, ii.length(tc.want));
     }
 }
 
-const IntTestCase = struct { bytes: []const u8, flip: u8 = 0x00, want: i64 };
+const IntTestCase = struct { bytes: []const u8, flip: u8 = 0x00, want: i72 };
 const int_test_cases = &[_]IntTestCase{
-    // .{ .bytes = &.{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -18519084246547628408 },
+    .{ .bytes = &.{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -18519084246547628408 },
     .{ .bytes = &.{ 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = -72340172838076793 },
     .{ .bytes = &.{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = -72340172838076792 },
     .{ .bytes = &.{ 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = -282578800148857 },
@@ -150,5 +155,5 @@ const int_test_cases = &[_]IntTestCase{
     .{ .bytes = &.{ 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = 282578800148856 },
     .{ .bytes = &.{ 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 72340172838076791 },
     .{ .bytes = &.{ 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, .want = 72340172838076792 },
-    // .{ .bytes = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 18519084246547628407 },
+    .{ .bytes = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, .want = 18519084246547628407 },
 };
