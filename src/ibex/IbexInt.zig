@@ -42,6 +42,7 @@ fn readBytes(r: *ByteReader, bytes: usize, comptime flip: u8) i64 {
     for (0..bytes) |_| {
         acc = (acc << 8) + (r.next() ^ flip);
     }
+    assert(acc >= 0 and acc <= MAX_ENCODED);
     return acc;
 }
 
