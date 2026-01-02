@@ -1,10 +1,9 @@
 const std = @import("std");
 
-const endian = @import("builtin").cpu.arch.endian();
-
-fn makeFloatStruct(comptime bits: usize, comptime exp_bits: usize) type {
+fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
     const exp = @Int(.unsigned, exp_bits);
     const mant = @Int(.unsigned, bits - exp_bits - 1);
+    const endian = @import("builtin").cpu.arch.endian();
 
     return switch (endian) {
         .little => @Struct(
@@ -35,24 +34,22 @@ fn exponentSizeForBits(bits: usize) usize {
     };
 }
 
-fn FloatStruct(comptime T: type) type {
-    const bits = @typeInfo(T).float.bits;
-    const exp_bits = exponentSizeForBits(bits);
-
-    const TValue = makeFloatStruct(bits, exp_bits);
-    const TExp = @Int(.signed, exp_bits + 1);
-
+pub fn FloatBits(comptime T: type) type {
     return struct {
         const Self = @This();
-        pub const BITS = bits;
-        pub const EXP_BITS = exp_bits;
-        pub const EXP_BIAS = (1 << (EXP_BITS - 1)) - 1;
-        pub const EXPLICIT_MSB = switch (bits) {
+        pub const bits = @typeInfo(T).float.bits;
+        pub const exp_bits = exponentSizeForBits(bits);
+        pub const mant_bits = bits - exp_bits - 1;
+        pub const exp_bias = (1 << (exp_bits - 1)) - 1;
+
+        pub const explicit_msb = switch (bits) {
             80 => true,
             else => false,
         };
 
-        value: TValue,
+        const TExp = @Int(.signed, exp_bits + 1);
+
+        value: FloatValue(bits, exp_bits),
 
         pub fn init(value: T) Self {
             return Self{ .value = @bitCast(value) };
@@ -62,25 +59,30 @@ fn FloatStruct(comptime T: type) type {
             return @bitCast(self.value);
         }
 
-        pub fn exponent(self: *const Self) TExp {
-            return @as(TExp, @intCast(self.value.exp)) - EXP_BIAS;
+        pub fn exponent(self: Self) TExp {
+            return @as(TExp, @intCast(self.value.exp)) - exp_bias;
         }
 
-        pub fn isSpecial(self: Self) bool {
+        fn isSpecial(self: Self) bool {
             return self.value.exp == (1 << exp_bits) - 1;
         }
 
+        fn nanBit(self: Self) bool {
+            const nan_bit = 1 << mant_bits - if (explicit_msb) 2 else 1;
+            return (self.value.mant & nan_bit) != 0;
+        }
+
         pub fn isInf(self: Self) bool {
-            return self.isSpecial() and self.value.mant == 0;
+            return self.isSpecial() and !self.nanBit();
         }
 
         pub fn isNaN(self: Self) bool {
-            return self.isSpecial() and self.value.mant != 0;
+            return self.isSpecial() and self.nanBit();
         }
 
         pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
             try w.print(
-                "{s} e:{x:>4} m:{x:>28}",
+                "{s} e({x:>4}) m({x:>28})",
                 .{
                     if (self.value.sign) "-" else "+",
                     self.value.exp,
@@ -91,22 +93,12 @@ fn FloatStruct(comptime T: type) type {
     };
 }
 
-fn unpack(comptime T: type, value: T) void {
-    const FS = FloatStruct(T);
-    const fs = FS.init(value);
-    std.debug.print(
-        "{d:>6}: {f} exp={d:>6} inf={any} nan={any}\n",
-        .{ value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
-    );
-}
-
 test "foo" {
-    std.debug.print("Testing {any} endian\n", .{endian});
     const types = [_]type{ f16, f32, f64, f80, f128 };
 
-    inline for (types) |t| {
-        std.debug.print("=== {d} bits ===\n", .{@typeInfo(t).float.bits});
-        const values = [_]t{
+    inline for (types) |T| {
+        std.debug.print("=== {d} bits ===\n", .{@typeInfo(T).float.bits});
+        const values = [_]T{
             0,
             1,
             2,
@@ -115,24 +107,19 @@ test "foo" {
             -1,
             1.25,
             1.0625,
-            std.math.inf(t),
-            std.math.nan(t),
+            std.math.inf(T),
+            std.math.nan(T),
+            -std.math.inf(T),
+            -std.math.nan(T),
             // std.math.pi,
         };
         for (values) |v| {
-            unpack(t, v);
+            const FS = FloatBits(T);
+            const fs = FS.init(v);
+            std.debug.print(
+                "{d:>6}: {f} exp: {d:>6} inf: {any:<5} nan: {any:<5}\n",
+                .{ v, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
+            );
         }
     }
-    // unpack(f64, std.math.nan(f64));
-    // unpack(f64, std.math.inf(f64));
-    // unpack(f64, 0);
-    // unpack(f64, 1);
-    // unpack(f32, 1);
-    // unpack(f16, 0.5);
-    // unpack(f32, 0.5);
-    // unpack(f64, 0.5);
-    // unpack(f80, 0.5);
-    // unpack(f128, 0.5);
-    // unpack(f64, 2);
-    // unpack(f64, -1);
 }
