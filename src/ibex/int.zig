@@ -108,12 +108,12 @@ pub fn IbexInt(comptime T: type) !type {
             }
         }
 
-        fn writeBytes(w: *ByteWriter, bytes: usize, comptime flip: u8, value: T) void {
+        fn writeBytes(w: *ByteWriter, bytes: usize, value: T) void {
             assert(bytes < MAX_BYTES);
             for (0..bytes) |i| {
                 const pos: u7 = @intCast(bytes - 1 - i);
                 const byte: u8 = @intCast((value >> (pos * 8)) & 0xff);
-                w.put(byte ^ flip);
+                w.put(byte);
             }
         }
 
@@ -123,10 +123,10 @@ pub fn IbexInt(comptime T: type) !type {
                 w.put(@intCast(value + BIAS));
             } else if (value >= 0) {
                 w.put(@intCast(bytes - 1 + LIN_HI));
-                writeBytes(w, bytes, 0x00, value - LIMITS[bytes]);
+                writeBytes(w, bytes, value - LIMITS[bytes]);
             } else {
                 w.put(@intCast(LIN_LO - bytes));
-                writeBytes(w, bytes, 0xff, ~(value + LIMITS[bytes]));
+                writeBytes(w, bytes, value + LIMITS[bytes]);
             }
         }
 
