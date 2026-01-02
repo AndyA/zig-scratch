@@ -1,66 +1,15 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-pub const IbexTag = enum {
-    End,
-    Null,
-    False,
-    True,
-    String,
-    NegativeInfinity,
-    Negative,
-    NegativeZero,
-    PositiveZero,
-    Positive,
-    PositiveInfinity,
-    Array,
-    Object,
-};
-
-pub const ByteReader = struct {
-    const Self = @This();
-    buf: []const u8,
-    flip: u8 = 0x00,
-    pos: usize = 0,
-
-    pub fn eof(self: *const Self) bool {
-        assert(self.pos <= self.buf.len);
-        return self.pos == self.buf.len;
-    }
-
-    pub fn peek(self: *Self) u8 {
-        assert(self.pos < self.buf.len);
-        return self.buf[self.pos] ^ self.flip;
-    }
-
-    pub fn next(self: *Self) u8 {
-        assert(self.pos < self.buf.len);
-        defer self.pos += 1;
-        return self.peek();
-    }
-};
-
-pub const ByteWriter = struct {
-    const Self = @This();
-    buf: []u8,
-    flip: u8 = 0x00,
-    pos: usize = 0,
-
-    pub fn put(self: *Self, b: u8) void {
-        assert(self.pos < self.buf.len);
-        defer self.pos += 1;
-        self.buf[self.pos] = b ^ self.flip;
-    }
-
-    pub fn slice(self: *const Self) []const u8 {
-        return self.buf[0..self.pos];
-    }
-};
+const ibex = @import("./ibex.zig");
+const ByteReader = ibex.ByteReader;
+const ByteWriter = ibex.ByteWriter;
 
 const BIAS = 0x80;
 const LIN_LO = 0x08;
 const LIN_HI = 0xf8;
 const MAX_BYTES = LIN_LO + 1;
+const MAX_ENCODED: i64 = 0x7efefefefefefe87;
 
 const LIMITS: [MAX_BYTES]i72 = blk: {
     var limits: [MAX_BYTES]i72 = undefined;

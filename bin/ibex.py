@@ -1,25 +1,14 @@
-low = 120
+i64_max = [126, 254, 254, 254, 254, 254, 254, 135]
+i64_min_stored = [129, 1, 1, 1, 1, 1, 1, 120]
+i64_min = [b ^ 0xFF for b in i64_min_stored]
 
-for len in range(1, 9):
-    span = 1 << (len * 8)
-    high = low + span - 1
-    print(f".{{ .bytes = &.{{ 0x{len + 0xF7:02x}{', 0x00' * len} }}, .want = {low} }},")
-    print(
-        f".{{ .bytes = &.{{ 0x{len + 0xF7:02x}{', 0xff' * len} }}, .want = {high} }},"
-    )
-    low += span
 
-high = -121
-for len in range(1, 9):
-    span = 1 << (len * 8)
-    low = high - span + 1
-    print(f".{{ .bytes = &.{{ 0x{8 - len:02x}{', 0xff' * len} }}, .want = {high} }},")
-    print(f".{{ .bytes = &.{{ 0x{8 - len:02x}{', 0x00' * len} }}, .want = {low} }},")
-    high -= span
+def biggy(bytes: list[int]) -> int:
+    n = 0
+    for b in bytes:
+        n = (n << 8) | b
+    return n
 
-# .{ .bytes = &.{ 0xf8, 0x00 }, .want = 120 },
-# .{ .bytes = &.{0xf7}, .want = 119 },
-# .{ .bytes = &.{0x81}, .want = 1 },
-# .{ .bytes = &.{0x80}, .want = 0 },
-# .{ .bytes = &.{0x7f}, .want = -1 },
-# .{ .bytes = &.{0x08}, .want = -120 },
+
+print(f"i64 max: {biggy(i64_max):x}")
+print(f"i64 min: {biggy(i64_min):x}")
