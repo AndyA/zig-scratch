@@ -64,6 +64,12 @@ pub fn encodedLength(value: i64) usize {
     return ENC_BYTES + 1;
 }
 
+test encodedLength {
+    for (test_cases) |tc| {
+        try std.testing.expectEqual(tc.buf.len, IbexInt.encodedLength(tc.want));
+    }
+}
+
 pub fn read(r: *ByteReader) i64 {
     const nb = r.next();
     const bytes = repLength(nb);
@@ -73,6 +79,14 @@ pub fn read(r: *ByteReader) i64 {
         return ~(LIMITS[bytes - 1] + readBytes(r, bytes, 0xff));
     } else {
         return @as(i64, @intCast(nb)) - BIAS;
+    }
+}
+
+test read {
+    for (test_cases) |tc| {
+        var r = ByteReader{ .buf = tc.buf, .flip = tc.flip };
+        try std.testing.expectEqual(tc.want, IbexInt.read(&r));
+        try std.testing.expectEqual(tc.buf.len, r.pos);
     }
 }
 
@@ -89,14 +103,6 @@ pub fn write(w: *ByteWriter, value: i64) void {
     }
 }
 
-test read {
-    for (test_cases) |tc| {
-        var r = ByteReader{ .buf = tc.buf, .flip = tc.flip };
-        try std.testing.expectEqual(tc.want, IbexInt.read(&r));
-        try std.testing.expectEqual(tc.buf.len, r.pos);
-    }
-}
-
 test write {
     for (test_cases) |tc| {
         var buf: [9]u8 = undefined;
@@ -104,12 +110,6 @@ test write {
         IbexInt.write(&w, tc.want);
         try std.testing.expectEqualDeep(tc.buf, w.slice());
         try std.testing.expectEqual(tc.buf.len, w.pos);
-    }
-}
-
-test encodedLength {
-    for (test_cases) |tc| {
-        try std.testing.expectEqual(tc.buf.len, IbexInt.encodedLength(tc.want));
     }
 }
 
