@@ -2,19 +2,6 @@ const std = @import("std");
 
 const endian = @import("builtin").cpu.arch.endian();
 
-fn hexDump(bytes: []const u8) void {
-    for (bytes) |b| {
-        std.debug.print("{x:0>2} ", .{b});
-    }
-    std.debug.print("\n", .{});
-}
-
-fn dumpBytes(comptime T: type, value: T) void {
-    const bytes = @bitSizeOf(T) / 8;
-    const buf: [bytes]u8 = @bitCast(value);
-    hexDump(&buf);
-}
-
 fn makeFloatStruct(comptime bits: usize, comptime exp_bits: usize) type {
     const exp = @Int(.unsigned, exp_bits);
     const mant = @Int(.unsigned, bits - exp_bits - 1);
@@ -60,6 +47,10 @@ fn FloatStruct(comptime T: type) type {
         pub const BITS = bits;
         pub const EXP_BITS = exp_bits;
         pub const EXP_BIAS = (1 << (EXP_BITS - 1)) - 1;
+        pub const EXPLICIT_MSB = switch (bits) {
+            80 => true,
+            else => false,
+        };
 
         value: TValue,
 
@@ -86,6 +77,17 @@ fn FloatStruct(comptime T: type) type {
         pub fn isNaN(self: Self) bool {
             return self.isSpecial() and self.value.mant != 0;
         }
+
+        pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
+            try w.print(
+                "{s} e:{x:>4} m:{x:>28}",
+                .{
+                    if (self.value.sign) "-" else "+",
+                    self.value.exp,
+                    self.value.mant,
+                },
+            );
+        }
     };
 }
 
@@ -93,29 +95,44 @@ fn unpack(comptime T: type, value: T) void {
     const FS = FloatStruct(T);
     const fs = FS.init(value);
     std.debug.print(
-        "[{d}] {d}: {any} {d} {any} {any}\n",
-        .{ FS.BITS, value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
+        "{d:>6}: {f} exp={d:>6} inf={any} nan={any}\n",
+        .{ value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
     );
 }
 
 test "foo" {
-    std.debug.print("Testing\n", .{});
-    // const x: f64 = 1;
-    // dumpBytes(f64, 1);
-    // dumpBytes(f64, 2);
-    // dumpBytes(f64, 3);
-    // dumpBytes(f64, -1);
-    unpack(f64, std.math.nan(f64));
-    unpack(f64, std.math.inf(f64));
-    unpack(f64, 0);
-    unpack(f64, 1);
-    unpack(f32, 1);
-    unpack(f16, 0.5);
-    unpack(f32, 0.5);
-    unpack(f64, 0.5);
-    unpack(f80, 0.5);
-    unpack(f128, 0.5);
-    unpack(f64, 2);
-    unpack(f64, -1);
-    std.debug.print("endian: {any}\n", .{endian});
+    std.debug.print("Testing {any} endian\n", .{endian});
+    const types = [_]type{ f16, f32, f64, f80, f128 };
+
+    inline for (types) |t| {
+        std.debug.print("=== {d} bits ===\n", .{@typeInfo(t).float.bits});
+        const values = [_]t{
+            0,
+            1,
+            2,
+            3,
+            0.5,
+            -1,
+            1.25,
+            1.0625,
+            std.math.inf(t),
+            std.math.nan(t),
+            // std.math.pi,
+        };
+        for (values) |v| {
+            unpack(t, v);
+        }
+    }
+    // unpack(f64, std.math.nan(f64));
+    // unpack(f64, std.math.inf(f64));
+    // unpack(f64, 0);
+    // unpack(f64, 1);
+    // unpack(f32, 1);
+    // unpack(f16, 0.5);
+    // unpack(f32, 0.5);
+    // unpack(f64, 0.5);
+    // unpack(f80, 0.5);
+    // unpack(f128, 0.5);
+    // unpack(f64, 2);
+    // unpack(f64, -1);
 }
