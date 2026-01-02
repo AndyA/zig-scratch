@@ -16,23 +16,22 @@ fn dumpBytes(comptime T: type, value: T) void {
 }
 
 fn makeFloatStruct(comptime bits: usize, comptime exp_bits: usize) type {
-    const Sign = @Int(.unsigned, 1);
-    const Exp = @Int(.unsigned, exp_bits);
-    const Mant = @Int(.unsigned, bits - exp_bits - 1);
+    const exp = @Int(.unsigned, exp_bits);
+    const mant = @Int(.unsigned, bits - exp_bits - 1);
 
     return switch (endian) {
         .little => @Struct(
             .@"packed",
             @Int(.unsigned, bits),
             &.{ "mant", "exp", "sign" },
-            &.{ Mant, Exp, Sign },
+            &.{ mant, exp, bool },
             &.{ .{}, .{}, .{} },
         ),
         .big => @Struct(
             .@"packed",
             @Int(.unsigned, bits),
             &.{ "sign", "exp", "mant" },
-            &.{ Sign, Exp, Mant },
+            &.{ bool, exp, mant },
             &.{ .{}, .{}, .{} },
         ),
     };
@@ -50,26 +49,63 @@ fn exponentSizeForBits(bits: usize) usize {
 }
 
 fn FloatStruct(comptime T: type) type {
-    switch (@typeInfo(T)) {
-        .float => |f| return makeFloatStruct(f.bits, exponentSizeForBits(f.bits)),
-        else => unreachable,
-    }
+    const bits = @typeInfo(T).float.bits;
+    const exp_bits = exponentSizeForBits(bits);
+
+    const TValue = makeFloatStruct(bits, exp_bits);
+    const TExp = @Int(.signed, exp_bits);
+
+    return packed struct {
+        const Self = @This();
+        pub const EXP_BIAS = 1 << (exp_bits - 1);
+        pub const EXP_MAX = EXP_BIAS * 2 - 1;
+        pub const EXP_MIN = -EXP_BIAS;
+
+        value: TValue,
+
+        pub fn init(value: T) Self {
+            return @bitCast(value);
+        }
+
+        pub fn get(self: Self) T {
+            return @bitCast(self);
+        }
+
+        pub fn exponent(self: *const Self) TExp {
+            const tmp: @Int(.signed, exp_bits + 1) = @intCast(self.value.exp);
+            return @intCast(tmp - EXP_BIAS);
+        }
+
+        pub fn isInf(self: Self) bool {
+            return self.value.exp == (1 << exp_bits) - 1 and self.value.mant == 0;
+        }
+
+        pub fn isNaN(self: Self) bool {
+            return self.value.exp == (1 << exp_bits) - 1 and self.value.mant != 0;
+        }
+    };
 }
 
 fn unpack(comptime T: type, value: T) void {
-    const fs: FloatStruct(T) = @bitCast(value);
-    std.debug.print("{any}\n", .{fs});
+    const fs = FloatStruct(T).init(value);
+    std.debug.print(
+        "{d}: {any} {d} {any} {any}\n",
+        .{ value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
+    );
 }
 
 test "foo" {
     std.debug.print("Testing\n", .{});
     // const x: f64 = 1;
-    dumpBytes(f64, 1);
-    dumpBytes(f64, 2);
-    dumpBytes(f64, 3);
-    dumpBytes(f64, -1);
+    // dumpBytes(f64, 1);
+    // dumpBytes(f64, 2);
+    // dumpBytes(f64, 3);
+    // dumpBytes(f64, -1);
+    unpack(f64, std.math.nan(f64));
+    unpack(f64, std.math.inf(f64));
     unpack(f64, 1);
     unpack(f32, 1);
+    unpack(f32, 0.5);
     unpack(f64, 2);
     unpack(f64, -1);
     std.debug.print("endian: {any}\n", .{endian});
