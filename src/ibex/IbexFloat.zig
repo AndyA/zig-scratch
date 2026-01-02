@@ -45,11 +45,10 @@ fn intCodec(comptime T: type) type {
             if (exp < 0) return 0;
             var acc: T = @as(T, 1) << @intCast(exp);
             var shift = exp - 8;
-            while (true) {
+            while (true) : (shift -= 7) {
                 const nb = r.next();
                 const bits = nb & 0xfe;
                 acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
-                shift -= 7;
                 if (nb & 0x01 == 0) break;
             }
             return acc;
@@ -103,6 +102,10 @@ test IbexFloat {
     T.write(&w, 255);
     var r = ByteReader{ .buf = w.slice() };
     try std.testing.expectEqual(255, T.read(&r));
+    // for (w.slice()) |b| {
+    //     std.debug.print("{x:0>2} ", .{b});
+    // }
+    // std.debug.print("\n", .{});
     // T.write(&w, 0xffee);
     // T.write(&w, std.math.maxInt(u32));
 }
