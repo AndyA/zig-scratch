@@ -53,44 +53,48 @@ fn FloatStruct(comptime T: type) type {
     const exp_bits = exponentSizeForBits(bits);
 
     const TValue = makeFloatStruct(bits, exp_bits);
-    const TExp = @Int(.signed, exp_bits);
+    const TExp = @Int(.signed, exp_bits + 1);
 
-    return packed struct {
+    return struct {
         const Self = @This();
-        pub const EXP_BIAS = 1 << (exp_bits - 1);
-        pub const EXP_MAX = EXP_BIAS * 2 - 1;
-        pub const EXP_MIN = -EXP_BIAS;
+        pub const BITS = bits;
+        pub const EXP_BITS = exp_bits;
+        pub const EXP_BIAS = (1 << (EXP_BITS - 1)) - 1;
 
         value: TValue,
 
         pub fn init(value: T) Self {
-            return @bitCast(value);
+            return Self{ .value = @bitCast(value) };
         }
 
         pub fn get(self: Self) T {
-            return @bitCast(self);
+            return @bitCast(self.value);
         }
 
         pub fn exponent(self: *const Self) TExp {
-            const tmp: @Int(.signed, exp_bits + 1) = @intCast(self.value.exp);
-            return @intCast(tmp - EXP_BIAS);
+            return @as(TExp, @intCast(self.value.exp)) - EXP_BIAS;
+        }
+
+        pub fn isSpecial(self: Self) bool {
+            return self.value.exp == (1 << exp_bits) - 1;
         }
 
         pub fn isInf(self: Self) bool {
-            return self.value.exp == (1 << exp_bits) - 1 and self.value.mant == 0;
+            return self.isSpecial() and self.value.mant == 0;
         }
 
         pub fn isNaN(self: Self) bool {
-            return self.value.exp == (1 << exp_bits) - 1 and self.value.mant != 0;
+            return self.isSpecial() and self.value.mant != 0;
         }
     };
 }
 
 fn unpack(comptime T: type, value: T) void {
-    const fs = FloatStruct(T).init(value);
+    const FS = FloatStruct(T);
+    const fs = FS.init(value);
     std.debug.print(
-        "{d}: {any} {d} {any} {any}\n",
-        .{ value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
+        "[{d}] {d}: {any} {d} {any} {any}\n",
+        .{ FS.BITS, value, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
     );
 }
 
@@ -103,9 +107,14 @@ test "foo" {
     // dumpBytes(f64, -1);
     unpack(f64, std.math.nan(f64));
     unpack(f64, std.math.inf(f64));
+    unpack(f64, 0);
     unpack(f64, 1);
     unpack(f32, 1);
+    unpack(f16, 0.5);
     unpack(f32, 0.5);
+    unpack(f64, 0.5);
+    unpack(f80, 0.5);
+    unpack(f128, 0.5);
     unpack(f64, 2);
     unpack(f64, -1);
     std.debug.print("endian: {any}\n", .{endian});
