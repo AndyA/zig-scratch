@@ -8,18 +8,18 @@ const ByteWriter = ibex.ByteWriter;
 const IbexInt = @This();
 
 const BIAS = 0x80;
-const LIN_LO = 0x08;
-const LIN_HI = 0xf8;
+const LINEAR_LO = 0x08;
+const LINEAR_HI = 0xf8;
 const MAX_ENCODED: i64 = 0x7efefefefefefe87;
-const ENC_BYTES = 8;
+const MAX_VALUE_BYTES = 8;
 
 // The largest value that can be encoded for each number of additional bytes
-const LIMITS: [ENC_BYTES]i64 = blk: {
-    var limits: [ENC_BYTES]i64 = undefined;
+const LIMITS: [MAX_VALUE_BYTES]i64 = blk: {
+    var limits: [MAX_VALUE_BYTES]i64 = undefined;
 
-    var limit: i64 = LIN_HI - BIAS;
+    var limit: i64 = LINEAR_HI - BIAS;
     limits[0] = limit;
-    for (1..ENC_BYTES) |len| {
+    for (1..MAX_VALUE_BYTES) |len| {
         limit += @as(i64, 1) << (@as(u6, @intCast(len)) * 8);
         limits[len] = limit;
     }
@@ -28,16 +28,16 @@ const LIMITS: [ENC_BYTES]i64 = blk: {
 };
 
 fn repLength(tag: u8) usize {
-    if (tag >= LIN_HI)
-        return tag - LIN_HI + 1
-    else if (tag < LIN_LO)
-        return LIN_LO - tag
+    if (tag >= LINEAR_HI)
+        return tag - LINEAR_HI + 1
+    else if (tag < LINEAR_LO)
+        return LINEAR_LO - tag
     else
         return 1;
 }
 
 fn readBytes(r: *ByteReader, bytes: usize, comptime flip: u8) i64 {
-    assert(bytes <= ENC_BYTES);
+    assert(bytes <= MAX_VALUE_BYTES);
     var acc: i64 = 0;
     for (0..bytes) |_| {
         acc = (acc << 8) + (r.next() ^ flip);
@@ -47,7 +47,7 @@ fn readBytes(r: *ByteReader, bytes: usize, comptime flip: u8) i64 {
 }
 
 fn writeBytes(w: *ByteWriter, bytes: usize, value: i64) void {
-    assert(bytes <= ENC_BYTES);
+    assert(bytes <= MAX_VALUE_BYTES);
     for (0..bytes) |i| {
         const pos: u6 = @intCast(bytes - 1 - i);
         const byte: u8 = @intCast((value >> (pos * 8)) & 0xff);
@@ -61,7 +61,7 @@ pub fn encodedLength(value: i64) usize {
         if (abs < limit)
             return len;
     }
-    return ENC_BYTES + 1;
+    return MAX_VALUE_BYTES + 1;
 }
 
 test encodedLength {
@@ -73,9 +73,9 @@ test encodedLength {
 pub fn read(r: *ByteReader) i64 {
     const nb = r.next();
     const bytes = repLength(nb);
-    if (nb >= LIN_HI) {
+    if (nb >= LINEAR_HI) {
         return LIMITS[bytes - 1] + readBytes(r, bytes, 0x00);
-    } else if (nb < LIN_LO) {
+    } else if (nb < LINEAR_LO) {
         return ~(LIMITS[bytes - 1] + readBytes(r, bytes, 0xff));
     } else {
         return @as(i64, @intCast(nb)) - BIAS;
@@ -95,10 +95,10 @@ pub fn write(w: *ByteWriter, value: i64) void {
     if (bytes == 0) {
         w.put(@intCast(value + BIAS));
     } else if (value >= 0) {
-        w.put(@intCast(bytes - 1 + LIN_HI));
+        w.put(@intCast(bytes - 1 + LINEAR_HI));
         writeBytes(w, bytes, value - LIMITS[bytes - 1]);
     } else {
-        w.put(@intCast(LIN_LO - bytes));
+        w.put(@intCast(LINEAR_LO - bytes));
         writeBytes(w, bytes, value + LIMITS[bytes - 1]);
     }
 }
@@ -134,7 +134,7 @@ const test_cases = &[_]TestCase{
     // },
     .{
         .buf = &.{ 0x00, 0x81, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x78 },
-        .want = -9223372036854775808, // minInt(i64)
+        .want = std.math.minInt(i64),
     },
     .{
         .buf = &.{ 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
@@ -188,7 +188,7 @@ const test_cases = &[_]TestCase{
     },
     .{
         .buf = &.{ 0xff, 0x7e, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0x87 },
-        .want = 9223372036854775807, // maxInt(i64)
+        .want = std.math.maxInt(i64),
     },
     // .{
     //     .buf = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
