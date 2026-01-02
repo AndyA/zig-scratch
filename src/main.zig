@@ -18,5 +18,5 @@ const assert = std.debug.assert;
 
 test {
     _ = @import("./tree.zig");
-    _ = @import("./ibex/int.zig");
+    _ = @import("./ibex/IbexInt.zig");
 }
