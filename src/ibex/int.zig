@@ -76,7 +76,7 @@ const LIMITS: [MAX_BYTES]i72 = blk: {
     break :blk limits;
 };
 
-pub fn IbexInt(comptime T: type) !type {
+pub fn IbexInt(comptime T: type) type {
     return struct {
         fn repLength(tag: u8) usize {
             if (tag >= LIN_HI)
@@ -143,7 +143,7 @@ pub fn IbexInt(comptime T: type) !type {
 
 test "read" {
     for (test_cases) |tc| {
-        const ii = try IbexInt(i72);
+        const ii = IbexInt(i72);
         var r = ByteReader{ .buf = tc.buf, .flip = tc.flip };
         try std.testing.expectEqual(tc.want, ii.read(&r));
         try std.testing.expectEqual(tc.buf.len, r.pos);
@@ -152,7 +152,7 @@ test "read" {
 
 test "write" {
     for (test_cases) |tc| {
-        const ii = try IbexInt(i72);
+        const ii = IbexInt(i72);
         var buf: [9]u8 = undefined;
         var w = ByteWriter{ .buf = &buf, .flip = tc.flip };
         ii.write(&w, tc.want);
@@ -163,14 +163,14 @@ test "write" {
 
 test "length" {
     for (test_cases) |tc| {
-        const ii = try IbexInt(i72);
+        const ii = IbexInt(i72);
         try std.testing.expectEqual(tc.buf.len, ii.length(tc.want));
     }
 }
 
 test "round trip" {
     var buf: [9]u8 = undefined;
-    const ii = try IbexInt(i72);
+    const ii = IbexInt(i72);
     for (0..140000) |offset| {
         const value = @as(i72, @intCast(offset)) - 70000;
         var w = ByteWriter{ .buf = &buf };
@@ -184,7 +184,7 @@ test "round trip" {
 
 // fn testFoo(value: i72) void {
 //     var buf: [9]u8 = undefined;
-//     const ii = try IbexInt(i72);
+//     const ii = IbexInt(i72);
 //     var w = ByteWriter{ .buf = &buf };
 //     ii.write(&w, value);
 //     std.debug.print("{d} => {any}\n", .{ value, w.slice() });
