@@ -1,133 +1,71 @@
 const std = @import("std");
+const assert = std.debug.assert;
 
-fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
-    const exp = @Int(.unsigned, exp_bits);
-    const mant = @Int(.unsigned, bits - exp_bits - 1);
-    const endian = @import("builtin").cpu.arch.endian();
+const ibex = @import("./ibex.zig");
+const IbexTag = ibex.IbexTag;
+const ByteReader = ibex.ByteReader;
+const ByteWriter = ibex.ByteWriter;
+const IbexInt = @import("./IbexInt.zig");
 
-    return switch (endian) {
-        .little => @Struct(
-            .@"packed",
-            @Int(.unsigned, bits),
-            &.{ "mant", "exp", "sign" },
-            &.{ mant, exp, bool },
-            &.{ .{}, .{}, .{} },
-        ),
-        .big => @Struct(
-            .@"packed",
-            @Int(.unsigned, bits),
-            &.{ "sign", "exp", "mant" },
-            &.{ bool, exp, mant },
-            &.{ .{}, .{}, .{} },
-        ),
+fn floatCodec(comptime T: type) type {
+    return T;
+}
+
+fn intCodec(comptime T: type) type {
+    return struct {
+        const info = @typeInfo(T).int;
+
+        fn writeInt(w: *ByteWriter, value: T) void {
+            const hi_bit = info.bits - @clz(value) - 1; // drop MSB
+            const lo_bit = @ctz(value);
+            const bytes: u16 = (hi_bit - lo_bit + 6) / 7;
+            // std.debug.print("hi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
+
+            IbexInt.write(w, hi_bit); // exp
+
+            for (0..bytes) |i| {
+                const shift: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
+                const shifted = if (shift > 0) value >> @intCast(shift) else value << @intCast(-shift);
+                var bits = shifted & 0xfe;
+                if (i < bytes - 1) bits |= 1;
+                // std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
+                w.put(@intCast(bits));
+            }
+        }
+
+        pub fn write(w: *ByteWriter, value: T) void {
+            if (value == 0) {
+                w.put(@intFromEnum(IbexTag.FloatPosZero));
+            } else if (value < 0) {
+                w.put(@intFromEnum(IbexTag.FloatNeg));
+                w.negate();
+                defer w.negate();
+                writeInt(w, -value);
+            } else {
+                w.put(@intFromEnum(IbexTag.FloatPos));
+                writeInt(w, value);
+            }
+        }
     };
 }
 
-fn exponentSizeForBits(bits: usize) usize {
-    return switch (bits) {
-        16 => 5,
-        32 => 8,
-        64 => 11,
-        80 => 15,
-        128 => 15,
+pub fn IbexFloat(comptime T: type) type {
+    return switch (@typeInfo(T)) {
+        .float => floatCodec(T),
+        .int => intCodec(T),
         else => unreachable,
     };
 }
 
-pub fn FloatBits(comptime T: type) type {
-    return struct {
-        const Self = @This();
-
-        pub const bits = @typeInfo(T).float.bits;
-        pub const exp_bits = exponentSizeForBits(bits);
-        pub const mant_bits = bits - exp_bits - 1;
-        pub const exp_bias = (1 << exp_bits - 1) - 1;
-
-        // f80 stores the redundant MSB of the mantissa explicitly.
-        // Presumably because f80 is a legacy 80(2)87 format?
-        pub const explicit_msb = switch (bits) {
-            80 => true,
-            else => false,
-        };
-
-        const TExp = @Int(.signed, exp_bits + 1);
-
-        value: FloatValue(bits, exp_bits),
-
-        pub fn init(value: T) Self {
-            return Self{ .value = @bitCast(value) };
-        }
-
-        pub fn get(self: Self) T {
-            return @bitCast(self.value);
-        }
-
-        pub fn exponent(self: Self) TExp {
-            return @as(TExp, @intCast(self.value.exp)) - exp_bias;
-        }
-
-        fn isSpecial(self: Self) bool {
-            return self.value.exp == (1 << exp_bits) - 1;
-        }
-
-        fn nanBit(self: Self) bool {
-            const nan_bit = 1 << mant_bits - if (explicit_msb) 2 else 1;
-            return (self.value.mant & nan_bit) != 0;
-        }
-
-        pub fn isInf(self: Self) bool {
-            return self.isSpecial() and !self.nanBit();
-        }
-
-        pub fn isNaN(self: Self) bool {
-            return self.isSpecial() and self.nanBit();
-        }
-
-        pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
-            try w.print(
-                "{s} e( {x:>4} ) m( {x:>28} )",
-                .{
-                    if (self.value.sign) "-" else "+",
-                    self.value.exp,
-                    self.value.mant,
-                },
-            );
-        }
-    };
+test IbexFloat {
+    const T = IbexFloat(u32);
+    var buf: [20]u8 = undefined;
+    var w = ByteWriter{ .buf = &buf };
+    T.write(&w, 3);
+    T.write(&w, 255);
+    // T.write(&w, std.math.maxInt(u32));
 }
 
-test "foo" {
-    const types = [_]type{ f16, f32, f64, f80, f128 };
-
-    inline for (types) |T| {
-        std.debug.print("=== {d} bits ===\n", .{@typeInfo(T).float.bits});
-        const values = [_]T{
-            0,
-            1,
-            2,
-            3,
-            255,
-            1023,
-            0.5,
-            0.25,
-            0.125,
-            0.0625,
-            -1,
-            1.25,
-            1.0625,
-            std.math.inf(T),
-            std.math.nan(T),
-            -std.math.inf(T),
-            -std.math.nan(T),
-            // std.math.pi,
-        };
-        for (values) |v| {
-            const FS = FloatBits(T);
-            const fs = FS.init(v);
-            std.debug.print(
-                "{d:>6}: {f} exp: {d:>6} inf: {any:<5} nan: {any:<5}\n",
-                .{ v, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
-            );
-        }
-    }
-}
+// test "foo" {
+//     std.debug.print("Hello!\n", .{});
+// }

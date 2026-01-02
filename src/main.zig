@@ -18,6 +18,7 @@ const assert = std.debug.assert;
 
 test {
     _ = @import("./tree.zig");
+    _ = @import("./ibex/float_bits.zig");
     _ = @import("./ibex/IbexInt.zig");
     _ = @import("./ibex/IbexFloat.zig");
 }

@@ -40,6 +40,10 @@ pub const ByteReader = struct {
         defer self.pos += 1;
         return self.peek();
     }
+
+    pub fn negate(self: *Self) void {
+        self.flip = ~self.flip;
+    }
 };
 
 pub const ByteWriter = struct {
@@ -56,5 +60,9 @@ pub const ByteWriter = struct {
 
     pub fn slice(self: *const Self) []const u8 {
         return self.buf[0..self.pos];
+    }
+
+    pub fn negate(self: *Self) void {
+        self.flip = ~self.flip;
     }
 };
