@@ -37,11 +37,14 @@ fn exponentSizeForBits(bits: usize) usize {
 pub fn FloatBits(comptime T: type) type {
     return struct {
         const Self = @This();
+
         pub const bits = @typeInfo(T).float.bits;
         pub const exp_bits = exponentSizeForBits(bits);
         pub const mant_bits = bits - exp_bits - 1;
-        pub const exp_bias = (1 << (exp_bits - 1)) - 1;
+        pub const exp_bias = (1 << exp_bits - 1) - 1;
 
+        // f80 stores the redundant MSB of the mantissa explicitly.
+        // Presumably because f80 is a legacy 80(2)87 format?
         pub const explicit_msb = switch (bits) {
             80 => true,
             else => false,
@@ -82,7 +85,7 @@ pub fn FloatBits(comptime T: type) type {
 
         pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
             try w.print(
-                "{s} e({x:>4}) m({x:>28})",
+                "{s} e( {x:>4} ) m( {x:>28} )",
                 .{
                     if (self.value.sign) "-" else "+",
                     self.value.exp,
