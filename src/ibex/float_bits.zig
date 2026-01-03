@@ -7,7 +7,13 @@ fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
     const endian = @import("builtin").cpu.arch.endian();
 
     return switch (endian) {
-        .little => @Struct(.@"packed", backing, &.{ "mant", "exp", "sign" }, &.{ mant, exp, bool }, &.{ .{}, .{}, .{} }),
+        .little => @Struct(
+            .@"packed",
+            backing,
+            &.{ "mant", "exp", "sign" },
+            &.{ mant, exp, bool },
+            &.{ .{}, .{}, .{} },
+        ),
         .big => @Struct(
             .@"packed",
             backing,
