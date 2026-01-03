@@ -24,32 +24,27 @@ fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
     };
 }
 
-fn exponentSizeForBits(bits: usize) usize {
-    return switch (bits) {
-        16 => 5,
-        32 => 8,
-        64 => 11,
-        80 => 15,
-        128 => 15,
-        else => unreachable,
-    };
-}
-
 pub fn FloatBits(comptime T: type) type {
     return struct {
         const Self = @This();
 
         pub const bits = @typeInfo(T).float.bits;
-        pub const exp_bits = exponentSizeForBits(bits);
-        pub const mant_bits = bits - exp_bits - 1;
-        pub const exp_bias = (1 << exp_bits - 1) - 1;
-
+        pub const exp_bits = switch (bits) {
+            16 => 5,
+            32 => 8,
+            64 => 11,
+            80 => 15,
+            128 => 15,
+            else => unreachable,
+        };
         // f80 stores the redundant MSB of the mantissa explicitly.
         // Presumably because f80 is a legacy 80(2)87 format?
         pub const explicit_msb = switch (bits) {
             80 => true,
             else => false,
         };
+        pub const mant_bits = bits - exp_bits - 1;
+        pub const exp_bias = (1 << exp_bits - 1) - 1;
 
         const TExp = @Int(.signed, exp_bits + 1);
 
