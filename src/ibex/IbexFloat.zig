@@ -101,13 +101,13 @@ pub fn IbexFloat(comptime T: type) type {
     };
 }
 
-fn intTestVector(comptime T: type) []const T {
+fn testVectorInt(comptime T: type) []const T {
     return &.{ 0, std.math.minInt(T), std.math.maxInt(T) };
 }
 
-fn testVectorForType(comptime T: type) []const T {
+fn testVector(comptime T: type) []const T {
     return switch (@typeInfo(T)) {
-        .int => intTestVector(T),
+        .int => testVectorInt(T),
         else => unreachable,
     };
 }
@@ -117,7 +117,7 @@ test IbexFloat {
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
         const IF = IbexFloat(T);
-        const tv = testVectorForType(T);
+        const tv = testVector(T);
         for (tv) |v| {
             var buf: [1024]u8 = undefined;
             var w = ByteWriter{ .buf = &buf };
