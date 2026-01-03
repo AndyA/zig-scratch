@@ -17,6 +17,8 @@ fn intCodec(comptime T: type) type {
         const info = @typeInfo(T).int;
 
         pub fn encodedLength(value: T) usize {
+            if (value == 0)
+                return 1;
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
             const bytes = (hi_bit - lo_bit + 6) / 7;
@@ -33,7 +35,7 @@ fn intCodec(comptime T: type) type {
 
             for (0..bytes) |i| {
                 const shift: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
-                const shifted = if (shift > 0) value >> @intCast(shift) else value << @intCast(-shift);
+                const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
                 var bits = shifted & 0xfe;
                 if (i < bytes - 1) bits |= 1;
                 // std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
@@ -48,7 +50,7 @@ fn intCodec(comptime T: type) type {
             var shift = exp - 8;
             while (true) : (shift -= 7) {
                 const nb = try r.next();
-                const bits = nb & 0xfe;
+                const bits: T = nb & 0xfe;
                 acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
                 if (nb & 0x01 == 0) break;
             }
@@ -99,20 +101,33 @@ pub fn IbexFloat(comptime T: type) type {
     };
 }
 
+fn intTestVector(comptime T: type) []const T {
+    return &.{ 0, std.math.minInt(T), std.math.maxInt(T) };
+}
+
+fn testVectorForType(comptime T: type) []const T {
+    return switch (@typeInfo(T)) {
+        .int => intTestVector(T),
+        else => unreachable,
+    };
+}
+
 test IbexFloat {
-    const T = IbexFloat(u32);
-    var buf: [20]u8 = undefined;
-    var w = ByteWriter{ .buf = &buf };
-    // T.write(&w, 3);
-    try T.write(&w, 255);
-    var r = ByteReader{ .buf = w.slice() };
-    try std.testing.expectEqual(255, try T.read(&r));
-    // for (w.slice()) |b| {
-    //     std.debug.print("{x:0>2} ", .{b});
-    // }
-    // std.debug.print("\n", .{});
-    // T.write(&w, 0xffee);
-    // T.write(&w, std.math.maxInt(u32));
+    const types = [_]type{ u8, u32, u64, u1024 };
+    inline for (types) |T| {
+        // std.debug.print("=== {any} ===\n", .{T});
+        const IF = IbexFloat(T);
+        const tv = testVectorForType(T);
+        for (tv) |v| {
+            var buf: [1024]u8 = undefined;
+            var w = ByteWriter{ .buf = &buf };
+            try IF.write(&w, v);
+            try std.testing.expectEqual(w.pos, IF.encodedLength(v));
+            // std.debug.print("{d} -> {any}\n", .{ v, w.slice() });
+            var r = ByteReader{ .buf = w.slice() };
+            try std.testing.expectEqual(v, try IF.read(&r));
+        }
+    }
 }
 
 // test "foo" {
