@@ -156,7 +156,7 @@ test IbexFloat {
         const IF = IbexFloat(T);
         const tv = testVector(T);
         for (tv) |v| {
-            var buf: [1024]u8 = undefined;
+            var buf: [256]u8 = undefined;
             var w = ByteWriter{ .buf = &buf };
             try IF.write(&w, v);
             try std.testing.expectEqual(w.pos, IF.encodedLength(v));
