@@ -82,7 +82,8 @@ fn intCodec(comptime T: type) type {
                 const bits: T = nb & 0xfe;
                 if (shift >= -8)
                     acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
-                if (nb & 0x01 == 0) break;
+                if (nb & 0x01 == 0)
+                    break;
             }
             return acc;
         }
