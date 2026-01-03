@@ -19,6 +19,8 @@ fn intCodec(comptime T: type) type {
         pub fn encodedLength(value: T) usize {
             if (value == 0)
                 return 1;
+            if (value < 0)
+                return encodedLength(~value);
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
             const bytes = (hi_bit - lo_bit + 6) / 7;
@@ -58,9 +60,11 @@ fn intCodec(comptime T: type) type {
         }
 
         fn readNegInt(r: *ByteReader) IbexError!T {
+            if (@typeInfo(T).int.signedness == .unsigned)
+                return IbexError.Overflow;
             r.negate();
             defer r.negate();
-            return ~try readPosInt(r) + 1;
+            return ~try readPosInt(r);
         }
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
@@ -70,7 +74,7 @@ fn intCodec(comptime T: type) type {
                 try w.put(@intFromEnum(IbexTag.FloatNeg));
                 w.negate();
                 defer w.negate();
-                try writeInt(w, -value);
+                try writeInt(w, ~value);
             } else {
                 try w.put(@intFromEnum(IbexTag.FloatPos));
                 try writeInt(w, value);
@@ -113,7 +117,7 @@ fn testVector(comptime T: type) []const T {
 }
 
 test IbexFloat {
-    const types = [_]type{ u8, u32, u64, u1024 };
+    const types = [_]type{ u8, i32, u32, u64, u1024 };
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
         const IF = IbexFloat(T);
