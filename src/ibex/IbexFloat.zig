@@ -61,7 +61,7 @@ fn intCodec(comptime T: type) type {
                 defer w.negate();
                 if (value == std.math.minInt(T)) {
                     // Special case minInt
-                    try IbexInt.write(w, info.bits - 1);
+                    try IbexInt.write(w, max_exp);
                     try w.put(0x00);
                 } else {
                     try writeInt(w, -value);
