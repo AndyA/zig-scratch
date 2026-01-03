@@ -154,15 +154,15 @@ test IbexFloat {
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
         const IF = IbexFloat(T);
-        const tv = testVector(T);
-        for (tv) |v| {
+        const values = testVector(T);
+        for (values) |value| {
             var buf: [256]u8 = undefined;
             var w = ByteWriter{ .buf = &buf };
-            try IF.write(&w, v);
-            try std.testing.expectEqual(w.pos, IF.encodedLength(v));
+            try IF.write(&w, value);
+            try std.testing.expectEqual(w.pos, IF.encodedLength(value));
             // std.debug.print("{d} -> {any}\n", .{ v, w.slice() });
             var r = ByteReader{ .buf = w.slice() };
-            try std.testing.expectEqual(v, try IF.read(&r));
+            try std.testing.expectEqual(value, try IF.read(&r));
         }
     }
 }
