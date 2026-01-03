@@ -15,6 +15,10 @@ fn floatCodec(comptime T: type) type {
 fn intCodec(comptime T: type) type {
     return struct {
         const info = @typeInfo(T).int;
+        const max_exp = switch (info.signedness) {
+            .signed => info.bits - 1,
+            .unsigned => info.bits,
+        };
 
         pub fn encodedLength(value: T) usize {
             if (value == 0)
@@ -69,7 +73,8 @@ fn intCodec(comptime T: type) type {
         }
 
         fn readIntBits(r: *ByteReader, exp: i64) IbexError!T {
-            // TODO check exp overflow
+            if (exp >= max_exp)
+                return IbexError.Overflow;
             var acc: T = @as(T, 1) << @intCast(exp);
             var shift = exp - 8;
             while (true) : (shift -= 7) {
@@ -93,12 +98,11 @@ fn intCodec(comptime T: type) type {
             r.negate();
             defer r.negate();
             const exp = try IbexInt.read(r);
-            if (exp == info.bits - 1) {
+            if (exp == max_exp) {
                 const nb = try r.next();
                 return if (nb == 0) std.math.minInt(T) else IbexError.Overflow;
-            } else {
-                return -try readIntBits(r, exp);
             }
+            return -try readIntBits(r, exp);
         }
 
         pub fn read(r: *ByteReader) IbexError!T {
