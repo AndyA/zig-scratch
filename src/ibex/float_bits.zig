@@ -4,24 +4,14 @@ fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
     const backing = @Int(.unsigned, bits);
     const exp = @Int(.unsigned, exp_bits);
     const mant = @Int(.unsigned, bits - exp_bits - 1);
-    const endian = @import("builtin").cpu.arch.endian();
 
-    return switch (endian) {
-        .little => @Struct(
-            .@"packed",
-            backing,
-            &.{ "mant", "exp", "sign" },
-            &.{ mant, exp, bool },
-            &.{ .{}, .{}, .{} },
-        ),
-        .big => @Struct(
-            .@"packed",
-            backing,
-            &.{ "sign", "exp", "mant" },
-            &.{ bool, exp, mant },
-            &.{ .{}, .{}, .{} },
-        ),
-    };
+    return @Struct(
+        .@"packed",
+        backing,
+        &.{ "mant", "exp", "sign" },
+        &.{ mant, exp, bool },
+        &.{ .{}, .{}, .{} },
+    );
 }
 
 pub fn FloatBits(comptime T: type) type {
