@@ -25,7 +25,7 @@ fn intCodec(comptime T: type) type {
                 return 1;
             if (value < 0) {
                 if (value == std.math.minInt(T))
-                    return 1 + IbexInt.encodedLength(info.bits - 1) + 1;
+                    return 1 + IbexInt.encodedLength(max_exp) + 1;
                 return encodedLength(value);
             }
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
