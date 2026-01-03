@@ -13,13 +13,13 @@ fn floatCodec(comptime T: type) type {
 }
 
 fn intCodec(comptime T: type) type {
-    return struct {
-        const info = @typeInfo(T).int;
-        const max_exp = switch (info.signedness) {
-            .signed => info.bits - 1,
-            .unsigned => info.bits,
-        };
+    const info = @typeInfo(T).int;
+    const max_exp = switch (info.signedness) {
+        .signed => info.bits - 1,
+        .unsigned => info.bits,
+    };
 
+    return struct {
         pub fn encodedLength(value: T) usize {
             if (value == 0)
                 return 1;
