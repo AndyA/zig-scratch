@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 
 const ibex = @import("./ibex.zig");
+const IbexError = ibex.IbexError;
 const ByteReader = ibex.ByteReader;
 const ByteWriter = ibex.ByteWriter;
 
@@ -36,22 +37,23 @@ fn repLength(tag: u8) usize {
         return 1;
 }
 
-fn readBytes(r: *ByteReader, bytes: usize, comptime flip: u8) i64 {
+fn readBytes(r: *ByteReader, bytes: usize, comptime flip: u8) IbexError!i64 {
     assert(bytes <= MAX_VALUE_BYTES);
     var acc: i64 = 0;
     for (0..bytes) |_| {
-        acc = (acc << 8) + (r.next() ^ flip);
+        acc = (acc << 8) + (try r.next() ^ flip);
     }
-    assert(acc >= 0 and acc <= MAX_ENCODED);
+    if (acc < 0 or acc > MAX_ENCODED)
+        return IbexError.InvalidData;
     return acc;
 }
 
-fn writeBytes(w: *ByteWriter, bytes: usize, value: i64) void {
+fn writeBytes(w: *ByteWriter, bytes: usize, value: i64) IbexError!void {
     assert(bytes <= MAX_VALUE_BYTES);
     for (0..bytes) |i| {
         const pos: u6 = @intCast(bytes - 1 - i);
         const byte: u8 = @intCast((value >> (pos * 8)) & 0xff);
-        w.put(byte);
+        try w.put(byte);
     }
 }
 
@@ -70,13 +72,13 @@ test encodedLength {
     }
 }
 
-pub fn read(r: *ByteReader) i64 {
-    const nb = r.next();
+pub fn read(r: *ByteReader) IbexError!i64 {
+    const nb = try r.next();
     const bytes = repLength(nb);
     if (nb >= LINEAR_HI) {
-        return LIMITS[bytes - 1] + readBytes(r, bytes, 0x00);
+        return LIMITS[bytes - 1] + try readBytes(r, bytes, 0x00);
     } else if (nb < LINEAR_LO) {
-        return ~(LIMITS[bytes - 1] + readBytes(r, bytes, 0xff));
+        return ~(LIMITS[bytes - 1] + try readBytes(r, bytes, 0xff));
     } else {
         return @as(i64, @intCast(nb)) - BIAS;
     }
@@ -90,16 +92,16 @@ test read {
     }
 }
 
-pub fn write(w: *ByteWriter, value: i64) void {
+pub fn write(w: *ByteWriter, value: i64) IbexError!void {
     const bytes = encodedLength(value) - 1;
     if (bytes == 0) {
-        w.put(@intCast(value + BIAS));
+        try w.put(@intCast(value + BIAS));
     } else if (value >= 0) {
-        w.put(@intCast(bytes - 1 + LINEAR_HI));
-        writeBytes(w, bytes, value - LIMITS[bytes - 1]);
+        try w.put(@intCast(bytes - 1 + LINEAR_HI));
+        try writeBytes(w, bytes, value - LIMITS[bytes - 1]);
     } else {
-        w.put(@intCast(LINEAR_LO - bytes));
-        writeBytes(w, bytes, value + LIMITS[bytes - 1]);
+        try w.put(@intCast(LINEAR_LO - bytes));
+        try writeBytes(w, bytes, value + LIMITS[bytes - 1]);
     }
 }
 
@@ -107,7 +109,7 @@ test write {
     for (test_cases) |tc| {
         var buf: [9]u8 = undefined;
         var w = ByteWriter{ .buf = &buf, .flip = tc.flip };
-        IbexInt.write(&w, tc.want);
+        try IbexInt.write(&w, tc.want);
         try std.testing.expectEqualDeep(tc.buf, w.slice());
         try std.testing.expectEqual(tc.buf.len, w.pos);
     }
@@ -118,7 +120,7 @@ test "round trip" {
     for (0..140000) |offset| {
         const value = @as(i64, @intCast(offset)) - 70000;
         var w = ByteWriter{ .buf = &buf };
-        IbexInt.write(&w, value);
+        try IbexInt.write(&w, value);
         try std.testing.expectEqual(w.pos, IbexInt.encodedLength(value));
         var r = ByteReader{ .buf = w.slice() };
         const got = IbexInt.read(&r);

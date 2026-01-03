@@ -19,6 +19,13 @@ pub const IbexTag = enum(u8) {
     Object,
 };
 
+pub const IbexError = error{
+    InvalidData,
+    Overflow,
+    BufferFull,
+    BufferEmpty,
+};
+
 pub const ByteReader = struct {
     const Self = @This();
     buf: []const u8,
@@ -35,8 +42,9 @@ pub const ByteReader = struct {
         return self.buf[self.pos] ^ self.flip;
     }
 
-    pub fn next(self: *Self) u8 {
-        assert(self.pos < self.buf.len);
+    pub fn next(self: *Self) IbexError!u8 {
+        if (self.eof())
+            return IbexError.BufferEmpty;
         defer self.pos += 1;
         return self.peek();
     }
@@ -52,8 +60,10 @@ pub const ByteWriter = struct {
     flip: u8 = 0x00,
     pos: usize = 0,
 
-    pub fn put(self: *Self, b: u8) void {
-        assert(self.pos < self.buf.len);
+    pub fn put(self: *Self, b: u8) IbexError!void {
+        assert(self.pos <= self.buf.len);
+        if (self.pos == self.buf.len)
+            return IbexError.BufferFull;
         defer self.pos += 1;
         self.buf[self.pos] = b ^ self.flip;
     }
