@@ -31,7 +31,7 @@ fn intCodec(comptime T: type) type {
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
             const bytes: u16 = @max(1, (hi_bit - lo_bit + 6) / 7);
-            std.debug.print("\nhi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
+            // std.debug.print("\nhi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
 
             try IbexInt.write(w, hi_bit); // exp
 
@@ -40,7 +40,7 @@ fn intCodec(comptime T: type) type {
                 const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
                 var bits = shifted & 0xfe;
                 if (i < bytes - 1) bits |= 1;
-                std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
+                // std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
                 try w.put(@intCast(bits));
             }
         }
@@ -124,14 +124,9 @@ fn testVector(comptime T: type) []const T {
 test "foo" {
     const IF = IbexFloat(i16);
     var buf: [1024]u8 = undefined;
-    {
+    for (0..5) |delta| {
         var w = ByteWriter{ .buf = &buf };
-        try IF.write(&w, std.math.minInt(i16) + 1);
-        std.debug.print("{any}\n", .{w.slice()});
-    }
-    {
-        var w = ByteWriter{ .buf = &buf };
-        try IF.write(&w, std.math.minInt(i16));
+        try IF.write(&w, std.math.minInt(i16) + @as(i16, @intCast(delta)));
         std.debug.print("{any}\n", .{w.slice()});
     }
 }
