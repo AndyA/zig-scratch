@@ -83,7 +83,9 @@ fn intCodec(comptime T: type) type {
                 .FloatPosZero, .FloatNegZero => 0,
                 .FloatPos => readPosInt(r),
                 .FloatNeg => readNegInt(r),
-                else => unreachable,
+                .FloatNegInf, .FloatPosInf => IbexError.Overflow,
+                .FloatNegNaN, .FloatPosNaN => IbexError.Overflow,
+                else => IbexError.InvalidData,
             };
         }
     };
