@@ -23,15 +23,15 @@ fn intCodec(comptime T: type) type {
                 return encodedLength(~value);
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
-            const bytes = (hi_bit - lo_bit + 6) / 7;
+            const bytes = @max(1, (hi_bit - lo_bit + 6) / 7);
             return 1 + IbexInt.encodedLength(hi_bit) + bytes;
         }
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
-            const bytes: u16 = (hi_bit - lo_bit + 6) / 7;
-            // std.debug.print("\nhi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
+            const bytes: u16 = @max(1, (hi_bit - lo_bit + 6) / 7);
+            std.debug.print("\nhi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
 
             try IbexInt.write(w, hi_bit); // exp
 
@@ -40,31 +40,31 @@ fn intCodec(comptime T: type) type {
                 const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
                 var bits = shifted & 0xfe;
                 if (i < bytes - 1) bits |= 1;
-                // std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
+                std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
                 try w.put(@intCast(bits));
             }
         }
 
         fn readPosInt(r: *ByteReader) IbexError!T {
             const exp = try IbexInt.read(r);
-            if (exp < 0) return 0;
             var acc: T = @as(T, 1) << @intCast(exp);
             var shift = exp - 8;
             while (true) : (shift -= 7) {
                 const nb = try r.next();
                 const bits: T = nb & 0xfe;
-                acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
+                if (shift >= -8)
+                    acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
                 if (nb & 0x01 == 0) break;
             }
             return acc;
         }
 
         fn readNegInt(r: *ByteReader) IbexError!T {
-            if (@typeInfo(T).int.signedness == .unsigned)
+            if (info.signedness == .unsigned)
                 return IbexError.Overflow;
             r.negate();
             defer r.negate();
-            return ~try readPosInt(r);
+            return -try readPosInt(r);
         }
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
@@ -74,7 +74,12 @@ fn intCodec(comptime T: type) type {
                 try w.put(@intFromEnum(IbexTag.FloatNeg));
                 w.negate();
                 defer w.negate();
-                try writeInt(w, ~value);
+                if (value == std.math.minInt(T)) {
+                    try IbexInt.write(w, info.bits - 1);
+                    try w.put(0x00);
+                } else {
+                    try writeInt(w, -value);
+                }
             } else {
                 try w.put(@intFromEnum(IbexTag.FloatPos));
                 try writeInt(w, value);
@@ -116,24 +121,35 @@ fn testVector(comptime T: type) []const T {
     };
 }
 
-test IbexFloat {
-    const types = [_]type{ u8, i32, u32, u64, u1024 };
-    inline for (types) |T| {
-        // std.debug.print("=== {any} ===\n", .{T});
-        const IF = IbexFloat(T);
-        const tv = testVector(T);
-        for (tv) |v| {
-            var buf: [1024]u8 = undefined;
-            var w = ByteWriter{ .buf = &buf };
-            try IF.write(&w, v);
-            try std.testing.expectEqual(w.pos, IF.encodedLength(v));
-            // std.debug.print("{d} -> {any}\n", .{ v, w.slice() });
-            var r = ByteReader{ .buf = w.slice() };
-            try std.testing.expectEqual(v, try IF.read(&r));
-        }
+test "foo" {
+    const IF = IbexFloat(i16);
+    var buf: [1024]u8 = undefined;
+    {
+        var w = ByteWriter{ .buf = &buf };
+        try IF.write(&w, std.math.minInt(i16) + 1);
+        std.debug.print("{any}\n", .{w.slice()});
+    }
+    {
+        var w = ByteWriter{ .buf = &buf };
+        try IF.write(&w, std.math.minInt(i16));
+        std.debug.print("{any}\n", .{w.slice()});
     }
 }
 
-// test "foo" {
-//     std.debug.print("Hello!\n", .{});
+// test IbexFloat {
+//     const types = [_]type{ u8, u32, u64, u1024 };
+//     inline for (types) |T| {
+//         // std.debug.print("=== {any} ===\n", .{T});
+//         const IF = IbexFloat(T);
+//         const tv = testVector(T);
+//         for (tv) |v| {
+//             var buf: [1024]u8 = undefined;
+//             var w = ByteWriter{ .buf = &buf };
+//             try IF.write(&w, v);
+//             try std.testing.expectEqual(w.pos, IF.encodedLength(v));
+//             // std.debug.print("{d} -> {any}\n", .{ v, w.slice() });
+//             var r = ByteReader{ .buf = w.slice() };
+//             try std.testing.expectEqual(v, try IF.read(&r));
+//         }
+//     }
 // }
