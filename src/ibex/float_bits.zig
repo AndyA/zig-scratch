@@ -1,15 +1,15 @@
 const std = @import("std");
 
 fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
-    const backing = @Int(.unsigned, bits);
-    const exp = @Int(.unsigned, exp_bits);
-    const mant = @Int(.unsigned, bits - exp_bits - 1);
-
     return @Struct(
         .@"packed",
-        backing,
+        @Int(.unsigned, bits),
         &.{ "mant", "exp", "sign" },
-        &.{ mant, exp, bool },
+        &.{
+            @Int(.unsigned, bits - exp_bits - 1),
+            @Int(.unsigned, exp_bits),
+            bool,
+        },
         &.{ .{}, .{}, .{} },
     );
 }
