@@ -26,7 +26,7 @@ fn intCodec(comptime T: type) type {
             if (value < 0) {
                 if (value == std.math.minInt(T))
                     return 1 + IbexInt.encodedLength(max_exp) + 1;
-                return encodedLength(value);
+                return encodedLength(-value);
             }
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
@@ -150,7 +150,7 @@ fn testVector(comptime T: type) []const T {
 // }
 
 test IbexFloat {
-    const types = [_]type{ u8, i32, u32, u64, u1024 };
+    const types = [_]type{ u8, i9, i13, i32, u33, u32, u64, u1024, i1024 };
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
         const IF = IbexFloat(T);
