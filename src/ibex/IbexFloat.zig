@@ -38,16 +38,20 @@ fn intCodec(comptime T: type) type {
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
-            const bytes: u16 = @max(1, (hi_bit - lo_bit + 6) / 7);
-
+            const bytes: u16 = (hi_bit - lo_bit + 6) / 7;
             try IbexInt.write(w, hi_bit); // exp
 
-            for (0..bytes) |i| {
-                const shift: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
-                const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
-                var bits = shifted & 0xfe;
-                if (i < bytes - 1) bits |= 1;
-                try w.put(@intCast(bits));
+            if (bytes == 0) {
+                // Special case empty mantissa
+                try w.put(0x00);
+            } else {
+                for (0..bytes) |i| {
+                    const shift: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
+                    const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
+                    var bits = shifted & 0xfe;
+                    if (i < bytes - 1) bits |= 1;
+                    try w.put(@intCast(bits));
+                }
             }
         }
 
@@ -76,13 +80,23 @@ fn intCodec(comptime T: type) type {
                 return IbexError.Overflow;
             var acc: T = @as(T, 1) << @intCast(exp);
             var shift = exp - 8;
+            // std.debug.print(
+            //     "T={any}, exp={d}, acc=0x{x}, shift={d}\n",
+            //     .{ T, exp, acc, shift },
+            // );
+
             while (true) : (shift -= 7) {
                 const nb = try r.next();
                 const bits: T = nb & 0xfe;
-                if (shift >= -8)
+                // std.debug.print("shift={d}\n", .{shift});
+                if (shift > -8)
                     acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
-                if (nb & 0x01 == 0)
+                if (nb & 0x01 == 0) {
+                    // Detect non-canonical encoding
+                    if (nb == 0 and shift != exp - 8)
+                        return IbexError.InvalidData;
                     break;
+                }
             }
             return acc;
         }
@@ -134,10 +148,19 @@ fn TV(comptime T: type, comptime size: usize) type {
         buf: [size]T = undefined,
         pos: usize = 0,
 
+        pub fn has(self: *const Self, value: T) bool {
+            for (self.slice()) |v| {
+                if (v == value) return true;
+            }
+            return false;
+        }
+
         pub fn put(self: *Self, value: T) void {
-            assert(self.pos < size);
-            self.buf[self.pos] = value;
-            self.pos += 1;
+            if (!self.has(value)) {
+                assert(self.pos < size);
+                self.buf[self.pos] = value;
+                self.pos += 1;
+            }
         }
 
         pub fn slice(self: *const Self) []const T {
@@ -146,14 +169,23 @@ fn TV(comptime T: type, comptime size: usize) type {
     };
 }
 
-const TVSize = 10;
+const TVSize = 100;
 
 fn testVectorInt(comptime T: type) TV(T, TVSize) {
+    const min_int = std.math.minInt(T);
+    const max_int = std.math.maxInt(T);
+    const info = @typeInfo(T).int;
     var tv = TV(T, TVSize){};
     tv.put(0);
-    if (std.math.minInt(T) != 0)
-        tv.put(std.math.minInt(T));
-    tv.put(std.math.maxInt(T));
+    tv.put(min_int);
+    tv.put(max_int);
+
+    var small: T = 1;
+    while (small < @min(15, std.math.maxInt(T))) : (small += 1) {
+        tv.put(small);
+        if (info.signedness == .signed) tv.put(-small);
+    }
+
     return tv;
 }
 
