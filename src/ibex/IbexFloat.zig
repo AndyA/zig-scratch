@@ -271,6 +271,9 @@ test "integers" {
         63,
         64,
         65,
+        127,
+        128,
+        129,
         1024,
     };
     inline for (lengths) |bits| {
