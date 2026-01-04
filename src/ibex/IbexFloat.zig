@@ -171,11 +171,10 @@ fn checkFloat(bytes: []const u8) void {
     const nb = r.next() catch unreachable;
     const tag: IbexTag = @enumFromInt(nb);
     switch (tag) {
-        .FloatPosZero, .FloatNegZero => return,
         .FloatPos => {},
         .FloatNeg => r.negate(),
-        .FloatNegInf, .FloatPosInf => return,
-        .FloatNegNaN, .FloatPosNaN => return,
+        .FloatPosZero, .FloatNegZero, .FloatNegInf => return,
+        .FloatPosInf, .FloatNegNaN, .FloatPosNaN => return,
         else => unreachable,
     }
     _ = IbexInt.read(&r) catch unreachable;
@@ -185,10 +184,6 @@ fn checkFloat(bytes: []const u8) void {
         assert(first or mb != 0);
         if (mb & 0x01 == 0) break;
     }
-}
-
-test "foo" {
-    // const bytes = [_]u8{ 10, 0x80, 0x01, 0x00, };
 }
 
 test IbexFloat {
