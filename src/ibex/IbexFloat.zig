@@ -71,9 +71,9 @@ fn intCodec(comptime T: type) type {
                 try w.put(0x00);
             } else {
                 for (0..bytes) |i| {
-                    const shift: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
-                    const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
-                    var bits = shifted & 0xfe;
+                    const sh: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
+                    const part = if (sh >= 0) value >> @intCast(sh) else value << @intCast(-sh);
+                    var bits = part & 0xfe;
                     if (i < bytes - 1) bits |= 1;
                     try w.put(@intCast(bits));
                 }
