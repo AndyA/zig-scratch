@@ -38,7 +38,6 @@ fn intCodec(comptime T: type) type {
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
             const bytes: u16 = @max(1, (hi_bit - lo_bit + 6) / 7);
-            // std.debug.print("\nhi={d}, lo={d}, bytes={d}\n", .{ hi_bit, lo_bit, bytes });
 
             try IbexInt.write(w, hi_bit); // exp
 
@@ -47,7 +46,6 @@ fn intCodec(comptime T: type) type {
                 const shifted = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
                 var bits = shifted & 0xfe;
                 if (i < bytes - 1) bits |= 1;
-                // std.debug.print("byte={d}, shift={d}, bits={x}\n", .{ i, shift, bits });
                 try w.put(@intCast(bits));
             }
         }
