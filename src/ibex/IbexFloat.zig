@@ -56,8 +56,8 @@ fn intCodec(comptime T: type) type {
             }
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
             const lo_bit = @ctz(value);
-            const bytes = @max(1, (hi_bit - lo_bit + 6) / 7);
-            return 1 + IbexInt.encodedLength(hi_bit) + bytes;
+            const bytes = (hi_bit - lo_bit + 6) / 7;
+            return 1 + IbexInt.encodedLength(hi_bit) + @max(1, bytes);
         }
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
@@ -142,7 +142,6 @@ fn intCodec(comptime T: type) type {
                 const nb = try r.next();
                 return switch (nb) {
                     0x00 => min_int,
-                    0x01 => IbexError.InvalidData,
                     else => IbexError.Overflow,
                 };
             }
