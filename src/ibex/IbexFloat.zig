@@ -173,8 +173,8 @@ fn checkFloat(bytes: []const u8) void {
     switch (tag) {
         .FloatPos => {},
         .FloatNeg => r.negate(),
-        .FloatPosZero, .FloatNegZero, .FloatNegInf => return,
-        .FloatPosInf, .FloatNegNaN, .FloatPosNaN => return,
+        .FloatPosZero, .FloatPosInf, .FloatPosNaN => return,
+        .FloatNegZero, .FloatNegInf, .FloatNegNaN => return,
         else => unreachable,
     }
     _ = IbexInt.read(&r) catch unreachable;
