@@ -221,20 +221,23 @@ fn checkFloat(bytes: []const u8) void {
 }
 
 test IbexFloat {
-    const types = [_]type{ u8, i9, i13, i32, u33, u32, u64, u1024, i1024 };
-    inline for (types) |T| {
-        // std.debug.print("=== {any} ===\n", .{T});
-        const IF = IbexFloat(T);
-        const tv = testVector(T);
-        for (tv.slice()) |value| {
-            var buf: [256]u8 = undefined;
-            var w = ByteWriter{ .buf = &buf };
-            try IF.write(&w, value);
-            try std.testing.expectEqual(w.pos, IF.encodedLength(value));
-            // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
-            checkFloat(w.slice());
-            var r = ByteReader{ .buf = w.slice() };
-            try std.testing.expectEqual(value, try IF.read(&r));
+    const lengths = [_]usize{ 9, 13, 32, 33, 64, 1024 };
+    inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
+        inline for (lengths) |bits| {
+            const T = @Int(signed, bits);
+            // std.debug.print("=== {any} ===\n", .{T});
+            const IF = IbexFloat(T);
+            const tv = testVector(T);
+            for (tv.slice()) |value| {
+                var buf: [256]u8 = undefined;
+                var w = ByteWriter{ .buf = &buf };
+                try IF.write(&w, value);
+                // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
+                try std.testing.expectEqual(w.pos, IF.encodedLength(value));
+                checkFloat(w.slice());
+                var r = ByteReader{ .buf = w.slice() };
+                try std.testing.expectEqual(value, try IF.read(&r));
+            }
         }
     }
 }
