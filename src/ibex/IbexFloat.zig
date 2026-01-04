@@ -247,7 +247,32 @@ fn checkFloat(bytes: []const u8) void {
 }
 
 test "integers" {
-    const lengths = [_]usize{ 1, 2, 8, 9, 13, 32, 33, 64, 1024 };
+    const lengths = [_]usize{
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        31,
+        32,
+        33,
+        63,
+        64,
+        65,
+        1024,
+    };
     inline for (lengths) |bits| {
         inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
             const T = @Int(signed, bits);
