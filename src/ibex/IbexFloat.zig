@@ -54,15 +54,15 @@ fn intCodec(comptime T: type) type {
                     return 1 + IbexInt.encodedLength(max_exp) + 1;
                 return encodedLength(-value);
             }
-            const hi_bit = info.bits - @clz(value) - 1; // drop MSB
-            const bytes = (hi_bit - @ctz(value) + 6) / 7;
-            return 1 + IbexInt.encodedLength(hi_bit) + @max(1, bytes);
+            const msb = info.bits - @clz(value) - 1; // drop MSB
+            const bytes = (msb - @ctz(value) + 6) / 7;
+            return 1 + IbexInt.encodedLength(msb) + @max(1, bytes);
         }
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
-            const hi_bit = info.bits - @clz(value) - 1; // drop MSB
-            const bytes: u16 = (hi_bit - @ctz(value) + 6) / 7;
-            try IbexInt.write(w, hi_bit); // exp
+            const msb = info.bits - @clz(value) - 1; // drop MSB
+            const bytes: u16 = (msb - @ctz(value) + 6) / 7;
+            try IbexInt.write(w, msb); // exp
 
             if (bytes == 0) {
                 // Special case empty mantissa
@@ -71,7 +71,7 @@ fn intCodec(comptime T: type) type {
             }
 
             for (0..bytes) |i| {
-                const sh: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
+                const sh: i32 = @as(i32, @intCast(msb - i * 7)) - 8;
                 const part = if (sh >= 0) value >> @intCast(sh) else value << @intCast(-sh);
                 var bits = part & 0xfe;
                 if (i < bytes - 1) bits |= 1;
