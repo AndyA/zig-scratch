@@ -250,9 +250,10 @@ test "integers" {
     const bit_lengths = //
         [_]usize{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 } ++ //
         [_]usize{ 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129, 1024 };
+    const signs = [_]std.builtin.Signedness{ .unsigned, .signed };
 
     inline for (bit_lengths) |bits| {
-        inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signedness| {
+        inline for (signs) |signedness| {
             const T = @Int(signedness, bits);
             // std.debug.print("=== {any} ===\n", .{T});
             const IF = IbexFloat(T);
