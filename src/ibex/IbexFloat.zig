@@ -222,8 +222,8 @@ fn checkFloat(bytes: []const u8) void {
 
 test IbexFloat {
     const lengths = [_]usize{ 9, 13, 32, 33, 64, 1024 };
-    inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
-        inline for (lengths) |bits| {
+    inline for (lengths) |bits| {
+        inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
             const T = @Int(signed, bits);
             // std.debug.print("=== {any} ===\n", .{T});
             const IF = IbexFloat(T);
