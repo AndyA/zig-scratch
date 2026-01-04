@@ -129,39 +129,78 @@ pub fn IbexFloat(comptime T: type) type {
     };
 }
 
-fn testVectorInt(comptime T: type) []const T {
-    return &.{ 0, std.math.minInt(T), std.math.maxInt(T) };
+fn TV(comptime T: type, comptime size: usize) type {
+    return struct {
+        const Self = @This();
+        buf: [size]T = undefined,
+        pos: usize = 0,
+
+        pub fn put(self: *Self, value: T) void {
+            assert(self.pos < size);
+            self.buf[self.pos] = value;
+            self.pos += 1;
+        }
+
+        pub fn slice(self: *const Self) []const T {
+            return self.buf[0..self.pos];
+        }
+    };
 }
 
-fn testVector(comptime T: type) []const T {
+const TVSize = 10;
+
+fn testVectorInt(comptime T: type) TV(T, TVSize) {
+    var tv = TV(T, TVSize){};
+    tv.put(0);
+    if (std.math.minInt(T) != 0)
+        tv.put(std.math.minInt(T));
+    tv.put(std.math.maxInt(T));
+    return tv;
+}
+
+fn testVector(comptime T: type) TV(T, TVSize) {
     return switch (@typeInfo(T)) {
         .int => testVectorInt(T),
         else => unreachable,
     };
 }
 
-// test "foo" {
-//     const IF = IbexFloat(i16);
-//     var buf: [1024]u8 = undefined;
-//     for (0..5) |delta| {
-//         var w = ByteWriter{ .buf = &buf };
-//         try IF.write(&w, std.math.minInt(i16) + @as(i16, @intCast(delta)));
-//         std.debug.print("{any}\n", .{w.slice()});
-//     }
-// }
+fn checkFloat(bytes: []const u8) void {
+    var r = ByteReader{ .buf = bytes };
+    defer assert(r.eof());
+    const nb = r.next() catch unreachable;
+    const tag: IbexTag = @enumFromInt(nb);
+    switch (tag) {
+        .FloatPosZero, .FloatNegZero => return,
+        .FloatPos => {},
+        .FloatNeg => r.negate(),
+        .FloatNegInf, .FloatPosInf => return,
+        .FloatNegNaN, .FloatPosNaN => return,
+        else => unreachable,
+    }
+    _ = IbexInt.read(&r) catch unreachable;
+    var tz = false;
+    while (true) {
+        const mb = r.next() catch unreachable;
+        if (mb & 0x01 == 0) break;
+        tz = mb & 0xfe == 0;
+    }
+    assert(!tz);
+}
 
 test IbexFloat {
     const types = [_]type{ u8, i9, i13, i32, u33, u32, u64, u1024, i1024 };
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
         const IF = IbexFloat(T);
-        const values = testVector(T);
-        for (values) |value| {
+        const tv = testVector(T);
+        for (tv.slice()) |value| {
             var buf: [256]u8 = undefined;
             var w = ByteWriter{ .buf = &buf };
             try IF.write(&w, value);
             try std.testing.expectEqual(w.pos, IF.encodedLength(value));
-            // std.debug.print("{d} -> {any}\n", .{ v, w.slice() });
+            // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
+            checkFloat(w.slice());
             var r = ByteReader{ .buf = w.slice() };
             try std.testing.expectEqual(value, try IF.read(&r));
         }
