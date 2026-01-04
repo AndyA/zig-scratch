@@ -18,13 +18,14 @@ fn intCodec(comptime T: type) type {
         .signed => info.bits - 1,
         .unsigned => info.bits,
     };
+    const min_int = std.math.minInt(T);
 
     return struct {
         pub fn encodedLength(value: T) usize {
             if (value == 0)
                 return 1;
             if (value < 0) {
-                if (value == std.math.minInt(T))
+                if (value == min_int)
                     return 1 + IbexInt.encodedLength(max_exp) + 1;
                 return encodedLength(-value);
             }
@@ -57,7 +58,7 @@ fn intCodec(comptime T: type) type {
                 try w.put(@intFromEnum(IbexTag.FloatNeg));
                 w.negate();
                 defer w.negate();
-                if (value == std.math.minInt(T)) {
+                if (value == min_int) {
                     // Special case minInt
                     try IbexInt.write(w, max_exp);
                     try w.put(0x00);
@@ -99,7 +100,7 @@ fn intCodec(comptime T: type) type {
             const exp = try IbexInt.read(r);
             if (exp == max_exp) {
                 const nb = try r.next();
-                return if (nb == 0) std.math.minInt(T) else IbexError.Overflow;
+                return if (nb == 0) min_int else IbexError.Overflow;
             }
             return -try readIntBits(r, exp);
         }
