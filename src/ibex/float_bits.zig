@@ -1,6 +1,6 @@
 const std = @import("std");
 
-fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
+fn FloatBits(comptime bits: usize, comptime exp_bits: usize) type {
     return @Struct(
         .@"packed",
         @Int(.unsigned, bits),
@@ -14,7 +14,7 @@ fn FloatValue(comptime bits: usize, comptime exp_bits: usize) type {
     );
 }
 
-pub fn FloatBits(comptime T: type) type {
+pub fn FloatValue(comptime T: type) type {
     return struct {
         const Self = @This();
 
@@ -38,7 +38,7 @@ pub fn FloatBits(comptime T: type) type {
 
         const TExp = @Int(.signed, exp_bits + 1);
 
-        value: FloatValue(bits, exp_bits),
+        value: FloatBits(bits, exp_bits),
 
         pub fn init(value: T) Self {
             return Self{ .value = @bitCast(value) };
@@ -82,11 +82,11 @@ pub fn FloatBits(comptime T: type) type {
     };
 }
 
-test FloatBits {
+test FloatValue {
     const types = [_]type{ f16, f32, f64, f80, f128 };
 
     inline for (types) |T| {
-        const FS = FloatBits(T);
+        const FS = FloatValue(T);
 
         try std.testing.expect(FS.init(std.math.inf(T)).isInf());
         try std.testing.expect(!FS.init(std.math.inf(T)).isNaN());
