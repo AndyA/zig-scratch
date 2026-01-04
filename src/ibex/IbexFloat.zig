@@ -38,9 +38,8 @@ fn intCodec(comptime T: type) type {
 
             pub fn read(r: *ByteReader) IbexError!T {
                 const value = try Codec.read(r);
-                if (value < min_int or value > max_int) {
+                if (value < min_int or value > max_int)
                     return IbexError.Overflow;
-                }
                 return @intCast(value);
             }
         };
