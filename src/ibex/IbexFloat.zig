@@ -20,15 +20,14 @@ fn intCodec(comptime T: type) type {
     };
 
     if (max_exp < 8) {
-        const BT = switch (info.signedness) {
+        const Codec = intCodec(switch (info.signedness) {
             .signed => i9,
             .unsigned => u8,
-        };
-        const Codec = intCodec(BT);
+        });
 
         return struct {
             pub fn encodedLength(value: T) usize {
-                return Codec.encodedLength(@intCast(value));
+                return Codec.encodedLength(value);
             }
 
             pub fn write(w: *ByteWriter, value: T) IbexError!void {
@@ -202,15 +201,16 @@ fn testVectorInt(comptime T: type) TV(T, TVSize) {
     const min_int = std.math.minInt(T);
     const max_int = std.math.maxInt(T);
     const info = @typeInfo(T).int;
+    const BT = @Int(info.signedness, info.bits + 1);
     var tv = TV(T, TVSize){};
 
-    var small: T = 0;
+    var small: BT = 0;
     while (small < @min(15, max_int)) : (small += 1) {
-        tv.put(small);
-        tv.put(max_int - small);
+        tv.put(@intCast(small));
+        tv.put(@intCast(max_int - small));
         if (info.signedness == .signed) {
-            tv.put(-small);
-            tv.put(min_int + small);
+            tv.put(@intCast(-small));
+            tv.put(@intCast(min_int + small));
         }
     }
 
@@ -248,7 +248,7 @@ fn checkFloat(bytes: []const u8) void {
 }
 
 test "integers" {
-    const lengths = [_]usize{ 2, 8, 9, 13, 32, 33, 64, 1024 };
+    const lengths = [_]usize{ 1, 2, 8, 9, 13, 32, 33, 64, 1024 };
     inline for (lengths) |bits| {
         inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
             const T = @Int(signed, bits);
