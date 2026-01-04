@@ -55,15 +55,13 @@ fn intCodec(comptime T: type) type {
                 return encodedLength(-value);
             }
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
-            const lo_bit = @ctz(value);
-            const bytes = (hi_bit - lo_bit + 6) / 7;
+            const bytes = (hi_bit - @ctz(value) + 6) / 7;
             return 1 + IbexInt.encodedLength(hi_bit) + @max(1, bytes);
         }
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
             const hi_bit = info.bits - @clz(value) - 1; // drop MSB
-            const lo_bit = @ctz(value);
-            const bytes: u16 = (hi_bit - lo_bit + 6) / 7;
+            const bytes: u16 = (hi_bit - @ctz(value) + 6) / 7;
             try IbexInt.write(w, hi_bit); // exp
 
             if (bytes == 0) {
