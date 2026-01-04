@@ -187,6 +187,9 @@ fn testVectorInt(comptime T: type) TV(T, TVSize) {
         }
     }
 
+    tv.put(max_int);
+    tv.put(min_int);
+
     // std.debug.print("{any}: {any}\n", .{ T, tv.slice() });
 
     return tv;
