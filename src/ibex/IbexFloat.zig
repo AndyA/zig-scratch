@@ -18,6 +18,33 @@ fn intCodec(comptime T: type) type {
         .signed => info.bits - 1,
         .unsigned => info.bits,
     };
+
+    if (max_exp < 8) {
+        const BT = switch (info.signedness) {
+            .signed => i9,
+            .unsigned => u8,
+        };
+        const Codec = intCodec(BT);
+
+        return struct {
+            pub fn encodedLength(value: T) usize {
+                return Codec.encodedLength(@intCast(value));
+            }
+
+            pub fn write(w: *ByteWriter, value: T) IbexError!void {
+                try Codec.write(w, value);
+            }
+
+            pub fn read(r: *ByteReader) IbexError!T {
+                const value = try Codec.read(r);
+                if (value < std.math.minInt(T) or value > std.math.maxInt(T)) {
+                    return IbexError.Overflow;
+                }
+                return @intCast(value);
+            }
+        };
+    }
+
     const min_int = std.math.minInt(T);
 
     return struct {
@@ -220,8 +247,8 @@ fn checkFloat(bytes: []const u8) void {
     }
 }
 
-test IbexFloat {
-    const lengths = [_]usize{ 9, 13, 32, 33, 64, 1024 };
+test "integers" {
+    const lengths = [_]usize{ 2, 8, 9, 13, 32, 33, 64, 1024 };
     inline for (lengths) |bits| {
         inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
             const T = @Int(signed, bits);
