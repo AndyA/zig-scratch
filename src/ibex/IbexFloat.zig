@@ -140,9 +140,11 @@ fn intCodec(comptime T: type) type {
             const exp = try IbexInt.read(r);
             if (exp == max_exp) {
                 const nb = try r.next();
-                if (nb != 0)
-                    return IbexError.Overflow;
-                return min_int;
+                return switch (nb) {
+                    0x00 => min_int,
+                    0x01 => IbexError.InvalidData,
+                    else => IbexError.Overflow,
+                };
             }
             return -try readIntBits(r, exp);
         }
