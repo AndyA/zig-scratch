@@ -247,7 +247,7 @@ fn checkFloat(bytes: []const u8) void {
 }
 
 test "integers" {
-    const lengths = [_]usize{
+    const bit_lengths = [_]usize{
         1,
         2,
         3,
@@ -276,9 +276,9 @@ test "integers" {
         129,
         1024,
     };
-    inline for (lengths) |bits| {
-        inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signed| {
-            const T = @Int(signed, bits);
+    inline for (bit_lengths) |bits| {
+        inline for ([_]std.builtin.Signedness{ .unsigned, .signed }) |signedness| {
+            const T = @Int(signedness, bits);
             // std.debug.print("=== {any} ===\n", .{T});
             const IF = IbexFloat(T);
             const tv = testVector(T);
