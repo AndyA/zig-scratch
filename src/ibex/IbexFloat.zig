@@ -179,13 +179,16 @@ fn checkFloat(bytes: []const u8) void {
         else => unreachable,
     }
     _ = IbexInt.read(&r) catch unreachable;
-    var tz = false;
-    while (true) {
+    var first = true;
+    while (true) : (first = false) {
         const mb = r.next() catch unreachable;
+        assert(first or mb != 0);
         if (mb & 0x01 == 0) break;
-        tz = mb & 0xfe == 0;
     }
-    assert(!tz);
+}
+
+test "foo" {
+    // const bytes = [_]u8{ 10, 0x80, 0x01, 0x00, };
 }
 
 test IbexFloat {
