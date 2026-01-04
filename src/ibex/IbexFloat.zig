@@ -196,7 +196,7 @@ fn TV(comptime T: type, comptime size: usize) type {
 
 const TVSize = 100;
 
-fn testVectorInt(comptime T: type) TV(T, TVSize) {
+fn intTestVector(comptime T: type) TV(T, TVSize) {
     const min_int = std.math.minInt(T);
     const max_int = std.math.maxInt(T);
     const info = @typeInfo(T).int;
@@ -250,7 +250,7 @@ test "integers" {
             const T = @Int(signedness, bits);
             // std.debug.print("=== {any} ===\n", .{T});
             const IF = IbexFloat(T);
-            const tv = testVectorInt(T);
+            const tv = intTestVector(T);
             for (tv.slice()) |value| {
                 var buf: [256]u8 = undefined;
                 var w = ByteWriter{ .buf = &buf };
