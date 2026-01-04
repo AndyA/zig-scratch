@@ -69,14 +69,15 @@ fn intCodec(comptime T: type) type {
             if (bytes == 0) {
                 // Special case empty mantissa
                 try w.put(0x00);
-            } else {
-                for (0..bytes) |i| {
-                    const sh: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
-                    const part = if (sh >= 0) value >> @intCast(sh) else value << @intCast(-sh);
-                    var bits = part & 0xfe;
-                    if (i < bytes - 1) bits |= 1;
-                    try w.put(@intCast(bits));
-                }
+                return;
+            }
+
+            for (0..bytes) |i| {
+                const sh: i32 = @as(i32, @intCast(hi_bit - i * 7)) - 8;
+                const part = if (sh >= 0) value >> @intCast(sh) else value << @intCast(-sh);
+                var bits = part & 0xfe;
+                if (i < bytes - 1) bits |= 1;
+                try w.put(@intCast(bits));
             }
         }
 
