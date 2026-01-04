@@ -176,15 +176,18 @@ fn testVectorInt(comptime T: type) TV(T, TVSize) {
     const max_int = std.math.maxInt(T);
     const info = @typeInfo(T).int;
     var tv = TV(T, TVSize){};
-    tv.put(0);
-    tv.put(min_int);
-    tv.put(max_int);
 
-    var small: T = 1;
-    while (small < @min(15, std.math.maxInt(T))) : (small += 1) {
+    var small: T = 0;
+    while (small < @min(15, max_int)) : (small += 1) {
         tv.put(small);
-        if (info.signedness == .signed) tv.put(-small);
+        tv.put(max_int - small);
+        if (info.signedness == .signed) {
+            tv.put(-small);
+            tv.put(min_int + small);
+        }
     }
+
+    // std.debug.print("{any}: {any}\n", .{ T, tv.slice() });
 
     return tv;
 }
