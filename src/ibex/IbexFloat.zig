@@ -218,13 +218,6 @@ fn testVectorInt(comptime T: type) TV(T, TVSize) {
     return tv;
 }
 
-fn testVector(comptime T: type) TV(T, TVSize) {
-    return switch (@typeInfo(T)) {
-        .int => testVectorInt(T),
-        else => unreachable,
-    };
-}
-
 fn checkFloat(bytes: []const u8) void {
     var r = ByteReader{ .buf = bytes };
     defer assert(r.eof());
@@ -257,7 +250,7 @@ test "integers" {
             const T = @Int(signedness, bits);
             // std.debug.print("=== {any} ===\n", .{T});
             const IF = IbexFloat(T);
-            const tv = testVector(T);
+            const tv = testVectorInt(T);
             for (tv.slice()) |value| {
                 var buf: [256]u8 = undefined;
                 var w = ByteWriter{ .buf = &buf };
