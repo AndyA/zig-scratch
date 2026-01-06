@@ -49,7 +49,7 @@ const TestCase = struct {
     bytes: []const u8,
 };
 
-const cases = &[_]TestCase{
+const general_cases = &[_]TestCase{
     .{ .T = u16, .mant = 0, .bytes = &.{0x00} },
     .{ .T = u8, .mant = 0x80, .bytes = &.{0x80} },
     .{ .T = u8, .mant = 0xff, .bytes = &.{ 0xff, 0x80 } },
@@ -59,7 +59,7 @@ const cases = &[_]TestCase{
 };
 
 test writeMantissa {
-    inline for (cases) |tc| {
+    inline for (general_cases) |tc| {
         var buf: [256]u8 = undefined;
         var w = ByteWriter{ .buf = &buf };
         try writeMantissa(tc.T, &w, tc.mant);
@@ -101,10 +101,12 @@ const read_cases = &[_]TestCase{
     .{ .T = u16, .mant = 0xffff, .bytes = &.{ 0xff, 0xff, 0xfe } },
     .{ .T = u16, .mant = 0xffff, .bytes = &.{ 0xff, 0xff, 0xff, 0xfe } },
     .{ .T = u16, .mant = 0xffff, .bytes = &.{ 0xff, 0xff, 0xff, 0xff, 0xfe } },
+    .{ .T = u16, .mant = 0xffff, .bytes = &.{ 0xff, 0xff, 0xc0 } },
+    .{ .T = u16, .mant = 0xffff, .bytes = &.{ 0xff, 0xff, 0xfe } },
 };
 
 test readMantissa {
-    inline for (cases ++ read_cases) |tc| {
+    inline for (general_cases ++ read_cases) |tc| {
         // std.debug.print("{any}\n", .{tc});
         var r = ByteReader{ .buf = tc.bytes };
         const got = try readMantissa(tc.T, &r);
