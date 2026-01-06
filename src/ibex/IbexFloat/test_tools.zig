@@ -6,6 +6,19 @@ const IbexTag = ibex.IbexTag;
 const ByteReader = ibex.ByteReader;
 const IbexInt = @import("../IbexInt.zig");
 
+pub fn exactSame(a: anytype, b: anytype) bool {
+    const TA = @TypeOf(a);
+    const TB = @TypeOf(b);
+    if (TA != TB) return false;
+    const bits = switch (@typeInfo(TA)) {
+        .float => |f| f.bits,
+        .int => |i| i.bits,
+        else => unreachable,
+    };
+    const UT = @Int(.unsigned, bits);
+    return @as(UT, @bitCast(a)) == @as(UT, @bitCast(b));
+}
+
 pub fn TestVec(comptime T: type, comptime size: usize) type {
     return struct {
         const Self = @This();
@@ -14,7 +27,7 @@ pub fn TestVec(comptime T: type, comptime size: usize) type {
 
         pub fn has(self: *const Self, value: T) bool {
             for (self.slice()) |v| {
-                if (v == value) return true;
+                if (exactSame(v, value)) return true;
             }
             return false;
         }
