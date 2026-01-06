@@ -209,13 +209,13 @@ fn TLeast(comptime TA: type, comptime TB: type) type {
     return if (@typeInfo(TA).float.bits < @typeInfo(TB).float.bits) TA else TB;
 }
 
-fn isOverflow(comptime T: type, value: f128) bool {
+fn isOverflow(comptime T: type, value: anytype) bool {
     return math.isFinite((value)) and
         (value < -math.floatMax(T) or
             value > math.floatMax(T));
 }
 
-fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void {
+fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrite, TRead)) !void {
     if (isOverflow(TWrite, value)) {
         // std.debug.print("skipping {d} out of range for {any}\n", .{ value, TWrite });
         return;
@@ -229,6 +229,7 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void
 
     const dec = floatCodec(TRead);
     var r = ByteReader{ .buf = w.slice() };
+
     if (isOverflow(TRead, value)) {
         const res = dec.read(&r);
         try std.testing.expectError(IbexError.Overflow, res);
@@ -236,6 +237,7 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void
     }
 
     const output = try dec.read(&r);
+
     if (math.isNegativeInf(value)) {
         try std.testing.expect(math.isNegativeInf(output));
     } else if (math.isPositiveInf(value)) {

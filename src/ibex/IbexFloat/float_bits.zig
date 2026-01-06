@@ -41,27 +41,6 @@ pub fn FloatValue(comptime T: type) type {
             return @bitCast(self.value);
         }
 
-        pub fn exponent(self: Self) TExpValue {
-            return @as(TExpValue, @intCast(self.value.exp)) - exp_bias;
-        }
-
-        fn isSpecial(self: Self) bool {
-            return self.value.exp == (1 << exp_bits) - 1;
-        }
-
-        fn nanBit(self: Self) bool {
-            const nan_bit = 1 << mant_bits - if (explicit_msb) 2 else 1;
-            return (self.value.mant & nan_bit) != 0;
-        }
-
-        pub fn isInf(self: Self) bool {
-            return self.isSpecial() and !self.nanBit();
-        }
-
-        pub fn isNaN(self: Self) bool {
-            return self.isSpecial() and self.nanBit();
-        }
-
         pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
             try w.print(
                 "{s} e( {x:>4} ) m( {x:>28} )",
@@ -73,48 +52,4 @@ pub fn FloatValue(comptime T: type) type {
             );
         }
     };
-}
-
-test FloatValue {
-    const types = [_]type{ f16, f32, f64, f80, f128 };
-
-    inline for (types) |T| {
-        const FS = FloatValue(T);
-
-        try std.testing.expect(FS.init(std.math.inf(T)).isInf());
-        try std.testing.expect(!FS.init(std.math.inf(T)).isNaN());
-        try std.testing.expect(!FS.init(std.math.nan(T)).isInf());
-        try std.testing.expect(FS.init(std.math.nan(T)).isNaN());
-
-        if (false) {
-            std.debug.print("=== {d} bits ===\n", .{@typeInfo(T).float.bits});
-            const values = [_]T{
-                0,
-                1,
-                2,
-                3,
-                255,
-                1023,
-                0.5,
-                0.25,
-                0.125,
-                0.0625,
-                -1,
-                1.25,
-                1.0625,
-                std.math.inf(T),
-                std.math.nan(T),
-                -std.math.inf(T),
-                -std.math.nan(T),
-                // std.math.pi,
-            };
-            for (values) |v| {
-                const fs = FS.init(v);
-                std.debug.print(
-                    "{d:>6}: {f} exp: {d:>6} inf: {any:<5} nan: {any:<5}\n",
-                    .{ v, fs, fs.exponent(), fs.isInf(), fs.isNaN() },
-                );
-            }
-        }
-    }
 }
