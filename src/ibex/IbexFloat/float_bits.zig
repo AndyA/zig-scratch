@@ -1,19 +1,5 @@
 const std = @import("std");
 
-fn FloatBits(comptime bits: usize, comptime exp_bits: usize) type {
-    return @Struct(
-        .@"packed",
-        @Int(.unsigned, bits),
-        &.{ "mant", "exp", "sign" },
-        &.{
-            @Int(.unsigned, bits - exp_bits - 1),
-            @Int(.unsigned, exp_bits),
-            bool,
-        },
-        &.{ .{}, .{}, .{} },
-    );
-}
-
 pub fn FloatValue(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -36,9 +22,16 @@ pub fn FloatValue(comptime T: type) type {
         pub const mant_bits = bits - exp_bits - 1;
         pub const exp_bias = (1 << exp_bits - 1) - 1;
 
-        const TExp = @Int(.signed, exp_bits + 1);
+        pub const TExpValue = @Int(.signed, exp_bits + 1);
+        pub const TInt = @Int(.unsigned, bits);
+        pub const TExp = @Int(.unsigned, exp_bits);
+        pub const TMant = @Int(.unsigned, mant_bits);
 
-        value: FloatBits(bits, exp_bits),
+        value: packed struct(TInt) {
+            mant: TMant,
+            exp: TExp,
+            sign: bool,
+        } = undefined,
 
         pub fn init(value: T) Self {
             return Self{ .value = @bitCast(value) };
@@ -48,8 +41,8 @@ pub fn FloatValue(comptime T: type) type {
             return @bitCast(self.value);
         }
 
-        pub fn exponent(self: Self) TExp {
-            return @as(TExp, @intCast(self.value.exp)) - exp_bias;
+        pub fn exponent(self: Self) TExpValue {
+            return @as(TExpValue, @intCast(self.value.exp)) - exp_bias;
         }
 
         fn isSpecial(self: Self) bool {

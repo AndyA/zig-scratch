@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const assert = std.debug.assert;
 
 const ibex = @import("../ibex.zig");
@@ -67,12 +68,13 @@ pub fn intCodec(comptime T: type) type {
                 return;
             }
 
+            var shift = @as(i32, @intCast(msb)) - 8;
             for (0..bytes) |i| {
-                const sh: i32 = @as(i32, @intCast(msb - i * 7)) - 8;
-                const part = if (sh >= 0) value >> @intCast(sh) else value << @intCast(-sh);
+                const part = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
                 var bits = part & 0xfe;
                 if (i < bytes - 1) bits |= 1;
                 try w.put(@intCast(bits));
+                shift -= 7;
             }
         }
 
@@ -158,41 +160,18 @@ pub fn intCodec(comptime T: type) type {
     };
 }
 
-fn TV(comptime T: type, comptime size: usize) type {
-    return struct {
-        const Self = @This();
-        buf: [size]T = undefined,
-        pos: usize = 0,
+const tt = @import("./test_tools.zig");
 
-        pub fn has(self: *const Self, value: T) bool {
-            for (self.slice()) |v| {
-                if (v == value) return true;
-            }
-            return false;
-        }
-
-        pub fn put(self: *Self, value: T) void {
-            if (!self.has(value)) {
-                assert(self.pos < size);
-                self.buf[self.pos] = value;
-                self.pos += 1;
-            }
-        }
-
-        pub fn slice(self: *const Self) []const T {
-            return self.buf[0..self.pos];
-        }
-    };
+fn TV(comptime T: type) type {
+    return tt.TestVec(T, 100);
 }
 
-const TVSize = 100;
-
-fn intTestVector(comptime T: type) TV(T, TVSize) {
-    const min_int = std.math.minInt(T);
-    const max_int = std.math.maxInt(T);
+fn intTestVector(comptime T: type) TV(T) {
+    const min_int = math.minInt(T);
+    const max_int = math.maxInt(T);
     const info = @typeInfo(T).int;
     const BT = @Int(info.signedness, info.bits + 1);
-    var tv = TV(T, TVSize){};
+    var tv = TV(T){};
 
     var small: BT = 0;
     while (small < @min(15, max_int)) : (small += 1) {
@@ -207,27 +186,6 @@ fn intTestVector(comptime T: type) TV(T, TVSize) {
     // std.debug.print("{any}: {any}\n", .{ T, tv.slice() });
 
     return tv;
-}
-
-fn checkFloat(bytes: []const u8) void {
-    var r = ByteReader{ .buf = bytes };
-    defer assert(r.eof());
-    const nb = r.next() catch unreachable;
-    const tag: IbexTag = @enumFromInt(nb);
-    switch (tag) {
-        .FloatPos => {},
-        .FloatNeg => r.negate(),
-        .FloatPosZero, .FloatPosInf, .FloatPosNaN => return,
-        .FloatNegZero, .FloatNegInf, .FloatNegNaN => return,
-        else => unreachable,
-    }
-    _ = IbexInt.read(&r) catch unreachable;
-    var first = true;
-    while (true) : (first = false) {
-        const mb = r.next() catch unreachable;
-        assert(first or mb != 0);
-        if (mb & 0x01 == 0) break;
-    }
 }
 
 test intCodec {
@@ -248,7 +206,7 @@ test intCodec {
                 try IF.write(&w, value);
                 // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
                 try std.testing.expectEqual(w.pos, IF.encodedLength(value));
-                checkFloat(w.slice());
+                tt.checkFloat(w.slice());
                 var r = ByteReader{ .buf = w.slice() };
                 try std.testing.expectEqual(value, try IF.read(&r));
             }

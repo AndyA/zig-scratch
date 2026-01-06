@@ -1,12 +1,15 @@
 const intCodec = @import("./IbexFloat/int.zig").intCodec;
+const floatCodec = @import("./IbexFloat/float.zig").floatCodec;
 
 test {
     _ = @import("./IbexFloat/int.zig");
+    _ = @import("./IbexFloat/float.zig");
+    _ = @import("./IbexFloat/float_bits.zig");
 }
 
 pub fn IbexFloat(comptime T: type) type {
     return switch (@typeInfo(T)) {
-        .float => unreachable,
+        .float => floatCodec(T),
         .int => intCodec(T),
         else => unreachable,
     };

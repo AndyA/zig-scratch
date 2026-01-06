@@ -26,7 +26,6 @@ pub fn main() !void {
 
 test {
     _ = @import("./tree.zig");
-    _ = @import("./ibex/float_bits.zig");
     _ = @import("./ibex/IbexInt.zig");
     _ = @import("./ibex/IbexFloat.zig");
 }
