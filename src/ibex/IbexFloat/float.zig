@@ -36,8 +36,8 @@ pub fn floatCodec(comptime T: type) type {
                 exp -= lz;
             }
 
-            const bytes: u16 = (VT.mant_bits - @ctz(mant) + 6) / 7;
-            return 1 + IbexInt.encodedLength(exp - VT.exp_bias) + @max(1, bytes);
+            return 1 + IbexInt.encodedLength(exp - VT.exp_bias) +
+                mantissa.mantissaLength(VT.TMant, mant);
         }
 
         fn writeFloat(w: *ByteWriter, value: T) IbexError!void {

@@ -18,6 +18,7 @@ pub fn intCodec(comptime T: type) type {
         .signed => info.bits - 1,
         .unsigned => info.bits,
     };
+    const UT = @Int(.unsigned, info.bits);
 
     if (max_exp < 8) {
         // To simplify the generic code we special-case sub-byte encodings
@@ -60,26 +61,13 @@ pub fn intCodec(comptime T: type) type {
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {
             const msb = info.bits - @clz(value) - 1; // drop MSB
-            const bytes: u16 = (msb - @ctz(value) + 6) / 7;
             try IbexInt.write(w, msb); // exp
 
-            if (bytes == 0) {
-                // Special case empty mantissa
-                try w.put(0x00);
-                return;
-            }
+            if (msb == 0)
+                return mantissa.writeMantissa(UT, w, 0);
 
-            var shift = @as(i32, @intCast(msb)) - 8;
-            for (0..bytes) |i| {
-                const part = if (shift >= 0)
-                    value >> @intCast(shift)
-                else
-                    value << @intCast(-shift);
-                var bits = part & 0xfe;
-                if (i < bytes - 1) bits |= 1;
-                try w.put(@intCast(bits));
-                shift -= 7;
-            }
+            const mant = @as(UT, @intCast(value)) << @intCast(info.bits - msb);
+            try mantissa.writeMantissa(UT, w, mant);
         }
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
@@ -105,7 +93,6 @@ pub fn intCodec(comptime T: type) type {
         fn readIntBits(r: *ByteReader, exp: i64) IbexError!T {
             if (exp >= max_exp)
                 return IbexError.Overflow;
-            const UT = @Int(.unsigned, info.bits);
             const mant = try mantissa.readMantissa(UT, r);
             if (mant > math.maxInt(UT))
                 return IbexError.InvalidData;
