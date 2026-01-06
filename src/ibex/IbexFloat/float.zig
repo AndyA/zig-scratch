@@ -177,6 +177,11 @@ fn floatTestVector(comptime T: type) TV(T) {
     tv.put(-math.inf(T));
     // tv.put(math.nan(T));
 
+    tv.put(math.pi);
+    tv.put(math.phi);
+    tv.put(-math.pi);
+    tv.put(-math.phi);
+
     var small: T = 0.0;
     while (small < 15.0) : (small += 1.0) {
         tv.put(small);
