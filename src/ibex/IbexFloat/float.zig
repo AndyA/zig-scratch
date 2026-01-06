@@ -116,9 +116,8 @@ pub fn floatCodec(comptime T: type) type {
 
             if (exp <= 0) { // subnormal
                 if (-exp >= VT.mant_bits)
-                    mant = 0
-                else
-                    mant >>= @intCast(-exp);
+                    return 0.0;
+                mant >>= @intCast(-exp);
                 exp = 0;
             }
 
@@ -140,8 +139,8 @@ pub fn floatCodec(comptime T: type) type {
             const nb = try r.next();
             const tag: IbexTag = @enumFromInt(nb);
             return switch (tag) {
-                .FloatPosZero => -0.0,
-                .FloatNegZero => 0.0,
+                .FloatPosZero => 0.0,
+                .FloatNegZero => -0.0,
                 .FloatNegInf => -math.inf(T),
                 .FloatPosInf => math.inf(T),
                 .FloatNegNaN, .FloatPosNaN => math.nan(T),
@@ -165,6 +164,9 @@ fn floatTestVector(comptime T: type) TV(T) {
     tv.put(math.floatMin(T));
     tv.put(math.floatMax(T));
     tv.put(math.floatEpsAt(T, 0));
+    tv.put(math.inf(T));
+    tv.put(-math.inf(T));
+    // tv.put(math.nan(T));
 
     var small: T = 0.0;
     while (small < 15.0) : (small += 1.0) {
@@ -182,6 +184,7 @@ test floatCodec {
 
     inline for (types) |T| {
         // std.debug.print("=== {any} ===\n", .{T});
+        const UInt = @Int(.unsigned, @typeInfo(T).float.bits);
         const IF = floatCodec(T);
         const tv = floatTestVector(T);
         for (tv.slice()) |value| {
@@ -192,7 +195,11 @@ test floatCodec {
             try std.testing.expectEqual(w.pos, IF.encodedLength(value));
             tt.checkFloat(w.slice());
             var r = ByteReader{ .buf = w.slice() };
-            try std.testing.expectEqual(value, try IF.read(&r));
+            const dec = try IF.read(&r);
+            const want: UInt = @bitCast(value);
+            const got: UInt = @bitCast(dec);
+            // std.debug.print("want={x} got={x}\n", .{ want, got });
+            try std.testing.expectEqual(want, got);
         }
     }
 }
