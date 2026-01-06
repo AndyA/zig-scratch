@@ -10,7 +10,7 @@ const ByteWriter = ibex.ByteWriter;
 const IbexInt = @import("../IbexInt.zig");
 const mantissa = @import("./mantissa.zig");
 
-fn FloatValue(comptime T: type) type {
+fn FloatBits(comptime T: type) type {
     return struct {
         const Self = @This();
 
@@ -65,7 +65,7 @@ fn FloatValue(comptime T: type) type {
 }
 
 pub fn floatCodec(comptime T: type) type {
-    const VT = FloatValue(T);
+    const VT = FloatBits(T);
     return struct {
         fn massageFloat(value: T) struct { i64, VT.TMant } {
             const v = VT.init(@abs(value));
