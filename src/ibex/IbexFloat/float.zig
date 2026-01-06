@@ -31,7 +31,7 @@ pub fn floatCodec(comptime T: type) type {
 
             if (exp == 0) { // subnormal
                 const lz = @clz(mant);
-                mant <<= lz + 1;
+                mant <<= lz;
                 exp -= lz;
             }
 
@@ -48,7 +48,7 @@ pub fn floatCodec(comptime T: type) type {
 
             if (exp == 0) { // subnormal
                 const lz = @clz(mant);
-                mant <<= lz + 1;
+                mant <<= lz;
                 exp -= lz;
             }
 
@@ -164,6 +164,7 @@ fn floatTestVector(comptime T: type) TV(T) {
 
     tv.put(math.floatMin(T));
     tv.put(math.floatMax(T));
+    tv.put(math.floatEpsAt(T, 0));
 
     var small: T = 0.0;
     while (small < 15.0) : (small += 1.0) {
@@ -194,15 +195,4 @@ test floatCodec {
             try std.testing.expectEqual(value, try IF.read(&r));
         }
     }
-}
-
-test "foo" {
-    const FC = floatCodec(f32);
-    var buf: [256]u8 = undefined;
-    var w = ByteWriter{ .buf = &buf };
-    var foo = FloatValue(f32).init(0);
-    foo.value.exp = 1;
-    const value = foo.get() * 3;
-    try FC.write(&w, value / 2 / 2 / 2);
-    // std.debug.print("rep: {any}", .{w.slice()});
 }
