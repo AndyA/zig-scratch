@@ -3,7 +3,6 @@ const floatCodec = @import("./IbexNumber/float.zig").floatCodec;
 
 test {
     _ = @import("./IbexNumber/mantissa.zig");
-    _ = @import("./IbexNumber/float_bits.zig");
     _ = @import("./IbexNumber/int.zig");
     _ = @import("./IbexNumber/float.zig");
 }
