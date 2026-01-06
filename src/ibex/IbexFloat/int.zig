@@ -13,37 +13,11 @@ const mantissa = @import("./mantissa.zig");
 pub fn intCodec(comptime T: type) type {
     const info = @typeInfo(T).int;
     const min_int = math.minInt(T);
-    const max_int = math.maxInt(T);
     const max_exp = switch (info.signedness) {
         .signed => info.bits - 1,
         .unsigned => info.bits,
     };
     const UT = @Int(.unsigned, info.bits);
-
-    if (max_exp < 8) {
-        // To simplify the generic code we special-case sub-byte encodings
-        const Codec = intCodec(switch (info.signedness) {
-            .signed => i9,
-            .unsigned => u8,
-        });
-
-        return struct {
-            pub fn encodedLength(value: T) usize {
-                return Codec.encodedLength(value);
-            }
-
-            pub fn write(w: *ByteWriter, value: T) IbexError!void {
-                try Codec.write(w, value);
-            }
-
-            pub fn read(r: *ByteReader) IbexError!T {
-                const value = try Codec.read(r);
-                if (value < min_int or value > max_int)
-                    return IbexError.Overflow;
-                return @intCast(value);
-            }
-        };
-    }
 
     return struct {
         pub fn encodedLength(value: T) usize {
