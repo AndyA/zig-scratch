@@ -9,6 +9,7 @@ const ByteReader = ibex.ByteReader;
 const ByteWriter = ibex.ByteWriter;
 const FloatValue = @import("./float_bits.zig").FloatValue;
 const IbexInt = @import("../IbexInt.zig");
+const mantissa = @import("./mantissa.zig");
 
 // Uh oh:
 // https://en.wikipedia.org/wiki/Subnormal_number
@@ -53,25 +54,7 @@ pub fn floatCodec(comptime T: type) type {
             }
 
             try IbexInt.write(w, exp - VT.exp_bias);
-
-            const bytes: u16 = (VT.mant_bits - @ctz(mant) + 6) / 7;
-
-            if (bytes == 0) {
-                try w.put(0x00);
-                return;
-            }
-
-            var shift = @as(i32, @intCast(VT.mant_bits)) - 8;
-            for (0..bytes) |i| {
-                const part = if (shift >= 0)
-                    mant >> @intCast(shift)
-                else
-                    mant << @intCast(-shift);
-                var bits = part & 0xfe;
-                if (i < bytes - 1) bits |= 1;
-                try w.put(@intCast(bits));
-                shift -= 7;
-            }
+            try mantissa.writeMantissa(VT.TMant, w, mant);
         }
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
@@ -105,24 +88,7 @@ pub fn floatCodec(comptime T: type) type {
             if (exp >= math.maxInt(VT.TExp))
                 return IbexError.Overflow;
 
-            var mant: VT.TMant = 0;
-            var shift: i64 = VT.mant_bits - 8;
-
-            while (true) : (shift -= 7) {
-                const nb = try r.next();
-                const bits: VT.TMant = nb & 0xfe;
-                if (shift > -8)
-                    mant |= if (shift >= 0)
-                        bits << @intCast(shift)
-                    else
-                        bits >> @intCast(-shift);
-                if (nb & 0x01 == 0) {
-                    // Detect non-canonical encoding
-                    if (nb == 0 and shift != VT.mant_bits - 8)
-                        return IbexError.InvalidData;
-                    break;
-                }
-            }
+            var mant = try mantissa.readMantissa(VT.TMant, r);
 
             if (exp <= 0) { // subnormal
                 if (-exp >= VT.mant_bits)

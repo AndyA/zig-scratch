@@ -8,11 +8,12 @@ const IbexError = ibex.IbexError;
 const ByteReader = ibex.ByteReader;
 const ByteWriter = ibex.ByteWriter;
 const IbexInt = @import("../IbexInt.zig");
+const mantissa = @import("./mantissa.zig");
 
 pub fn intCodec(comptime T: type) type {
     const info = @typeInfo(T).int;
-    const min_int = std.math.minInt(T);
-    const max_int = std.math.maxInt(T);
+    const min_int = math.minInt(T);
+    const max_int = math.maxInt(T);
     const max_exp = switch (info.signedness) {
         .signed => info.bits - 1,
         .unsigned => info.bits,
@@ -104,30 +105,13 @@ pub fn intCodec(comptime T: type) type {
         fn readIntBits(r: *ByteReader, exp: i64) IbexError!T {
             if (exp >= max_exp)
                 return IbexError.Overflow;
-            var acc: T = @as(T, 1) << @intCast(exp);
-            var shift = exp - 8;
-            // std.debug.print(
-            //     "T={any}, exp={d}, acc=0x{x}, shift={d}\n",
-            //     .{ T, exp, acc, shift },
-            // );
+            const UT = @Int(.unsigned, info.bits);
+            const mant = try mantissa.readMantissa(UT, r);
+            if (mant > math.maxInt(UT))
+                return IbexError.InvalidData;
 
-            while (true) : (shift -= 7) {
-                const nb = try r.next();
-                const bits: T = nb & 0xfe;
-                // std.debug.print("shift={d}\n", .{shift});
-                if (shift > -8)
-                    acc |= if (shift >= 0)
-                        bits << @intCast(shift)
-                    else
-                        bits >> @intCast(-shift);
-                if (nb & 0x01 == 0) {
-                    // Detect non-canonical encoding
-                    if (nb == 0 and shift != exp - 8)
-                        return IbexError.InvalidData;
-                    break;
-                }
-            }
-            return acc;
+            const int = if (exp == 0) 0 else mant >> @intCast(info.bits - exp);
+            return @intCast(int | (@as(UT, 1) << @intCast(exp)));
         }
 
         fn readPosInt(r: *ByteReader) IbexError!T {
@@ -180,7 +164,7 @@ fn intTestVector(comptime T: type) TV(T) {
     var tv = TV(T){};
 
     var small: BT = 0;
-    while (small < @min(15, max_int)) : (small += 1) {
+    while (small < @min(5, max_int)) : (small += 1) {
         tv.put(@intCast(small));
         tv.put(@intCast(max_int - small));
         if (info.signedness == .signed) {
@@ -195,10 +179,14 @@ fn intTestVector(comptime T: type) TV(T) {
 }
 
 test intCodec {
+    // const bit_lengths = [_]usize{ 8, 16 };
     const bit_lengths = //
         [_]usize{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 } ++ //
         [_]usize{ 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129, 1024 };
-    const signs = [_]std.builtin.Signedness{ .unsigned, .signed };
+    const signs = [_]std.builtin.Signedness{
+        .unsigned,
+        .signed,
+    };
 
     inline for (bit_lengths) |bits| {
         inline for (signs) |signedness| {

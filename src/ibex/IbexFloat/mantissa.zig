@@ -3,12 +3,9 @@ const math = std.math;
 const assert = std.debug.assert;
 
 const ibex = @import("../ibex.zig");
-const IbexTag = ibex.IbexTag;
 const IbexError = ibex.IbexError;
 const ByteReader = ibex.ByteReader;
 const ByteWriter = ibex.ByteWriter;
-const FloatValue = @import("./float_bits.zig").FloatValue;
-const IbexInt = @import("../IbexInt.zig");
 
 fn sizeInBytes(comptime T: type, mant: T) u16 {
     const sig_bits = @typeInfo(T).int.bits - @ctz(mant);
