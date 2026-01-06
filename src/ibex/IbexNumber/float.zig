@@ -64,12 +64,25 @@ fn FloatValue(comptime T: type) type {
     };
 }
 
-// Uh oh:
-// https://en.wikipedia.org/wiki/Subnormal_number
-
 pub fn floatCodec(comptime T: type) type {
     const VT = FloatValue(T);
     return struct {
+        fn massageFloat(value: T) struct { i64, VT.TMant } {
+            const v = VT.init(@abs(value));
+            var exp: i64 = v.value.exp;
+            var mant = v.value.mant;
+
+            assert(exp < math.maxInt(VT.TExp));
+
+            // https://en.wikipedia.org/wiki/Subnormal_number
+            if (exp == 0) {
+                const lz = @clz(mant);
+                mant <<= lz;
+                exp -= lz;
+            }
+            return .{ exp, mant };
+        }
+
         pub fn encodedLength(value: T) usize {
             if (math.isNegativeZero(value) or
                 math.isPositiveZero(value) or
@@ -77,35 +90,14 @@ pub fn floatCodec(comptime T: type) type {
                 math.isNan(value))
                 return 1;
 
-            const v = VT.init(@abs(value));
-            var exp: i64 = v.value.exp;
-            var mant = v.value.mant;
-
-            assert(exp < math.maxInt(VT.TExp));
-
-            if (exp == 0) { // subnormal
-                const lz = @clz(mant);
-                mant <<= lz;
-                exp -= lz;
-            }
+            const exp, const mant = massageFloat(value);
 
             return 1 + IbexInt.encodedLength(exp - VT.exp_bias) +
                 mantissa.mantissaLength(VT.TMant, mant);
         }
 
         fn writeFloat(w: *ByteWriter, value: T) IbexError!void {
-            const v = VT.init(value);
-            var exp: i64 = v.value.exp;
-            var mant = v.value.mant;
-
-            assert(exp < math.maxInt(VT.TExp));
-
-            if (exp == 0) { // subnormal
-                const lz = @clz(mant);
-                mant <<= lz;
-                exp -= lz;
-            }
-
+            const exp, const mant = massageFloat(value);
             try IbexInt.write(w, exp - VT.exp_bias);
             try mantissa.writeMantissa(VT.TMant, w, mant);
         }
@@ -120,11 +112,9 @@ pub fn floatCodec(comptime T: type) type {
             else if (math.isPositiveZero(value))
                 return w.put(@intFromEnum(IbexTag.FloatPosZero))
             else if (math.isNan(value)) {
-                const v = FloatValue(T).init(value);
-                return w.put(@intFromEnum(if (v.value.sign)
-                    IbexTag.FloatNegNaN
-                else
-                    IbexTag.FloatPosNaN));
+                const v = VT.init(value);
+                const tag: IbexTag = if (v.value.sign) .FloatNegNaN else .FloatPosNaN;
+                return w.put(@intFromEnum(tag));
             } else if (value < 0.0) {
                 try w.put(@intFromEnum(IbexTag.FloatNeg));
                 w.negate();
@@ -143,7 +133,8 @@ pub fn floatCodec(comptime T: type) type {
 
             var mant = try mantissa.readMantissa(VT.TMant, r);
 
-            if (exp <= 0) { // subnormal
+            // https://en.wikipedia.org/wiki/Subnormal_number
+            if (exp <= 0) {
                 if (-exp >= VT.mant_bits)
                     return 0.0;
                 mant >>= @intCast(-exp);
