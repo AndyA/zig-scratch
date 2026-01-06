@@ -83,9 +83,13 @@ pub fn floatCodec(comptime T: type) type {
                 return w.put(@intFromEnum(IbexTag.FloatNegZero))
             else if (math.isPositiveZero(value))
                 return w.put(@intFromEnum(IbexTag.FloatPosZero))
-            else if (math.isNan(value))
-                return w.put(@intFromEnum(IbexTag.FloatPosNaN))
-            else if (value < 0.0) {
+            else if (math.isNan(value)) {
+                const v = FloatValue(T).init(value);
+                return w.put(@intFromEnum(if (v.value.sign)
+                    IbexTag.FloatNegNaN
+                else
+                    IbexTag.FloatPosNaN));
+            } else if (value < 0.0) {
                 try w.put(@intFromEnum(IbexTag.FloatNeg));
                 w.negate();
                 defer w.negate();
@@ -149,7 +153,8 @@ pub fn floatCodec(comptime T: type) type {
                 .FloatNegZero => -0.0,
                 .FloatNegInf => -math.inf(T),
                 .FloatPosInf => math.inf(T),
-                .FloatNegNaN, .FloatPosNaN => math.nan(T),
+                .FloatNegNaN => -math.nan(T),
+                .FloatPosNaN => math.nan(T),
                 .FloatPos => readFloatPos(r),
                 .FloatNeg => readFloatNeg(r),
                 else => IbexError.InvalidData,
@@ -175,7 +180,8 @@ fn floatTestVector(comptime T: type) TV(T) {
     tv.put(-math.floatEpsAt(T, 0));
     tv.put(math.inf(T));
     tv.put(-math.inf(T));
-    // tv.put(math.nan(T));
+    tv.put(math.nan(T));
+    tv.put(-math.nan(T));
 
     tv.put(math.pi);
     tv.put(math.phi);
@@ -186,14 +192,14 @@ fn floatTestVector(comptime T: type) TV(T) {
     while (small < 15.0) : (small += 1.0) {
         tv.put(small);
         tv.put(-small);
+        tv.put(1.0 / small);
+        tv.put(-1.0 / small);
     }
 
     // std.debug.print("{any}: {any}\n", .{ T, tv.slice() });
 
     return tv;
 }
-
-const FloatTypes = [_]type{ f16, f32, f64, f128 };
 
 fn TMost(comptime TA: type, comptime TB: type) type {
     return if (@typeInfo(TA).float.bits > @typeInfo(TB).float.bits) TA else TB;
@@ -234,6 +240,8 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void
         try std.testing.expect(math.isNegativeInf(output));
     } else if (math.isPositiveInf(value)) {
         try std.testing.expect(math.isPositiveInf(output));
+    } else if (math.isNan(value)) {
+        try std.testing.expect(math.isNan(output));
     } else {
         const TMin = TLeast(TWrite, TRead);
         const TMax = TMost(TWrite, TRead);
@@ -249,6 +257,8 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void
         try std.testing.expect(tt.exactSame(want, output));
     }
 }
+
+const FloatTypes = [_]type{ f16, f32, f64, f128 };
 
 test floatCodec {
     inline for (FloatTypes) |TWrite| {
