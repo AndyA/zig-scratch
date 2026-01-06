@@ -63,7 +63,10 @@ pub fn floatCodec(comptime T: type) type {
 
             var shift = @as(i32, @intCast(VT.mant_bits)) - 8;
             for (0..bytes) |i| {
-                const part = if (shift >= 0) mant >> @intCast(shift) else mant << @intCast(-shift);
+                const part = if (shift >= 0)
+                    mant >> @intCast(shift)
+                else
+                    mant << @intCast(-shift);
                 var bits = part & 0xfe;
                 if (i < bytes - 1) bits |= 1;
                 try w.put(@intCast(bits));
@@ -105,7 +108,10 @@ pub fn floatCodec(comptime T: type) type {
                 const nb = try r.next();
                 const bits: VT.TMant = nb & 0xfe;
                 if (shift > -8)
-                    mant |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
+                    mant |= if (shift >= 0)
+                        bits << @intCast(shift)
+                    else
+                        bits >> @intCast(-shift);
                 if (nb & 0x01 == 0) {
                     // Detect non-canonical encoding
                     if (nb == 0 and shift != VT.mant_bits - 8)
@@ -163,7 +169,10 @@ fn floatTestVector(comptime T: type) TV(T) {
 
     tv.put(math.floatMin(T));
     tv.put(math.floatMax(T));
+    tv.put(-math.floatMin(T));
+    tv.put(-math.floatMax(T));
     tv.put(math.floatEpsAt(T, 0));
+    tv.put(-math.floatEpsAt(T, 0));
     tv.put(math.inf(T));
     tv.put(-math.inf(T));
     // tv.put(math.nan(T));
@@ -179,27 +188,75 @@ fn floatTestVector(comptime T: type) TV(T) {
     return tv;
 }
 
-test floatCodec {
-    const types = [_]type{ f16, f32, f64, f128 };
+const FloatTypes = [_]type{ f16, f32, f64, f128 };
 
-    inline for (types) |T| {
-        // std.debug.print("=== {any} ===\n", .{T});
-        const UInt = @Int(.unsigned, @typeInfo(T).float.bits);
-        const IF = floatCodec(T);
-        const tv = floatTestVector(T);
-        for (tv.slice()) |value| {
-            var buf: [256]u8 = undefined;
-            var w = ByteWriter{ .buf = &buf };
-            try IF.write(&w, value);
-            // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
-            try std.testing.expectEqual(w.pos, IF.encodedLength(value));
-            tt.checkFloat(w.slice());
-            var r = ByteReader{ .buf = w.slice() };
-            const dec = try IF.read(&r);
-            const want: UInt = @bitCast(value);
-            const got: UInt = @bitCast(dec);
-            // std.debug.print("want={x} got={x}\n", .{ want, got });
-            try std.testing.expectEqual(want, got);
+fn TMost(comptime TA: type, comptime TB: type) type {
+    return if (@typeInfo(TA).float.bits > @typeInfo(TB).float.bits) TA else TB;
+}
+
+fn TLeast(comptime TA: type, comptime TB: type) type {
+    return if (@typeInfo(TA).float.bits < @typeInfo(TB).float.bits) TA else TB;
+}
+
+fn isOverflow(comptime T: type, value: f128) bool {
+    return math.isFinite((value)) and
+        (value < -math.floatMax(T) or
+            value > math.floatMax(T));
+}
+
+fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: f128) !void {
+    if (isOverflow(TWrite, value)) {
+        // std.debug.print("skipping {d} out of range for {any}\n", .{ value, TWrite });
+        return;
+    }
+    const enc = floatCodec(TWrite);
+    var buf: [256]u8 = undefined;
+    var w = ByteWriter{ .buf = &buf };
+    try enc.write(&w, @floatCast(value));
+    // std.debug.print("{d} -> {any}\n", .{ value, w.slice() });
+    try std.testing.expectEqual(w.pos, enc.encodedLength(@floatCast(value)));
+
+    const dec = floatCodec(TRead);
+    var r = ByteReader{ .buf = w.slice() };
+    if (isOverflow(TRead, value)) {
+        const res = dec.read(&r);
+        try std.testing.expectError(IbexError.Overflow, res);
+        return;
+    }
+
+    const output = try dec.read(&r);
+    if (math.isNegativeInf(value)) {
+        try std.testing.expect(math.isNegativeInf(output));
+    } else if (math.isPositiveInf(value)) {
+        try std.testing.expect(math.isPositiveInf(output));
+    } else {
+        const TMin = TLeast(TWrite, TRead);
+        const TMax = TMost(TWrite, TRead);
+        const eps: TMax = @floatCast(math.floatEpsAt(TMin, @floatCast(value)));
+        const want: TMax = @floatCast(value);
+        const got: TMax = @floatCast(output);
+        // std.debug.print("diff={d}, eps={d}\n", .{ @abs(got - want), eps });
+        try std.testing.expect(@abs(got - want) <= eps);
+    }
+
+    if (TWrite == TRead) {
+        const want: TRead = @floatCast(value);
+        try std.testing.expect(tt.exactSame(want, output));
+    }
+}
+
+test floatCodec {
+    inline for (FloatTypes) |TWrite| {
+        inline for (FloatTypes) |TRead| {
+            // std.debug.print("=== {any} -> {any} ===\n", .{ TWrite, TRead });
+            const tvw = floatTestVector(TWrite);
+            for (tvw.slice()) |value| {
+                try testRoundTrip(TWrite, TRead, value);
+            }
+            const tvr = floatTestVector(TRead);
+            for (tvr.slice()) |value| {
+                try testRoundTrip(TWrite, TRead, value);
+            }
         }
     }
 }

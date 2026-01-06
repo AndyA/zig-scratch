@@ -70,7 +70,10 @@ pub fn intCodec(comptime T: type) type {
 
             var shift = @as(i32, @intCast(msb)) - 8;
             for (0..bytes) |i| {
-                const part = if (shift >= 0) value >> @intCast(shift) else value << @intCast(-shift);
+                const part = if (shift >= 0)
+                    value >> @intCast(shift)
+                else
+                    value << @intCast(-shift);
                 var bits = part & 0xfe;
                 if (i < bytes - 1) bits |= 1;
                 try w.put(@intCast(bits));
@@ -113,7 +116,10 @@ pub fn intCodec(comptime T: type) type {
                 const bits: T = nb & 0xfe;
                 // std.debug.print("shift={d}\n", .{shift});
                 if (shift > -8)
-                    acc |= if (shift >= 0) bits << @intCast(shift) else bits >> @intCast(-shift);
+                    acc |= if (shift >= 0)
+                        bits << @intCast(shift)
+                    else
+                        bits >> @intCast(-shift);
                 if (nb & 0x01 == 0) {
                     // Detect non-canonical encoding
                     if (nb == 0 and shift != exp - 8)
