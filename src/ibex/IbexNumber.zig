@@ -6,12 +6,6 @@ const ibex = @import("./ibex.zig");
 const ByteReader = ibex.ByteReader;
 const ByteWriter = ibex.ByteWriter;
 
-test {
-    _ = @import("./IbexNumber/mantissa.zig");
-    _ = @import("./IbexNumber/int.zig");
-    _ = @import("./IbexNumber/float.zig");
-}
-
 pub fn IbexNumber(comptime T: type) type {
     return switch (@typeInfo(T)) {
         .float => floatCodec(T),
@@ -32,10 +26,7 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: comptime_fl
         .float => @floatCast(got),
         else => unreachable,
     };
-    try std.testing.expectEqual(
-        @as(f128, @floatCast(value)),
-        fgot,
-    );
+    try std.testing.expectEqual(@as(f128, @floatCast(value)), fgot);
 }
 
 test IbexNumber {
