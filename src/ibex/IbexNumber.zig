@@ -18,13 +18,13 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: comptime_fl
     try IbexNumber(TWrite).write(&w, value);
 
     var r = ibex.ByteReader{ .buf = w.slice() };
-    const got = try IbexNumber(TRead).read(&r);
-    const fgot: f128 = switch (@typeInfo(TRead)) {
-        .int => @floatFromInt(got),
-        .float => @floatCast(got),
+    const res = try IbexNumber(TRead).read(&r);
+    const got: f128 = switch (@typeInfo(TRead)) {
+        .int => @floatFromInt(res),
+        .float => @floatCast(res),
         else => unreachable,
     };
-    try std.testing.expectEqual(@as(f128, @floatCast(value)), fgot);
+    try std.testing.expectEqual(@as(f128, @floatCast(value)), got);
 }
 
 test IbexNumber {
