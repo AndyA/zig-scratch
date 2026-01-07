@@ -70,6 +70,7 @@ pub fn readMantissa(comptime T: type, r: *ByteReader) IbexError!T {
     const info = @typeInfo(T).int;
     assert(info.signedness == .unsigned);
 
+    // We need at least 8 bits so we can work with complete bytes
     const Adequate = @Int(.unsigned, @max(8, info.bits));
     var mant: Adequate = 0;
     const init_shift: i32 = @as(i32, @intCast(info.bits)) - 8;
