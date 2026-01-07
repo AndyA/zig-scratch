@@ -52,17 +52,36 @@ fn FloatBits(comptime T: type) type {
         }
 
         pub fn format(self: Self, w: *std.Io.Writer) std.Io.Writer.Error!void {
+            const norm_exp = @as(i64, @intCast(self.value.exp)) - exp_bias;
             try w.print(
-                "{s} e( {x:>4} ) m( {x:>28} )",
+                "{any:>5} {s} e( {x:>4} ) m( {x:>28} ) ({d:>8})",
                 .{
+                    T,
                     if (self.value.sign) "-" else "+",
                     self.value.exp,
                     self.value.mant,
+                    norm_exp,
                 },
             );
         }
     };
 }
+
+fn guts(v: anytype) FloatBits(@TypeOf(v)) {
+    return FloatBits(@TypeOf(v)).init(v);
+}
+
+// test "bits" {
+//     const types = [_]type{ f128, f80 };
+//     const values = [_]f80{ 0, 1.0, 2.0, 3.0, 255.0, math.floatMax(f80) };
+//     inline for (types) |T| {
+//         for (values) |value| {
+//             const FB = FloatBits(T);
+//             const v = FB.init(value);
+//             std.debug.print("{any:>5} {d:>10} -> {f}\n", .{ T, value, v });
+//         }
+//     }
+// }
 
 pub fn floatCodec(comptime T: type) type {
     const VT = FloatBits(T);
@@ -77,9 +96,13 @@ pub fn floatCodec(comptime T: type) type {
             // https://en.wikipedia.org/wiki/Subnormal_number
             if (exp == 0) {
                 const lz = @clz(mant);
-                mant <<= lz;
+                mant <<= @intCast(lz);
                 exp -= lz;
             }
+
+            if (VT.explicit_msb)
+                mant <<= 1;
+
             return .{ exp, mant };
         }
 
@@ -128,11 +151,16 @@ pub fn floatCodec(comptime T: type) type {
 
         fn readFloatPos(r: *ByteReader) IbexError!T {
             var exp = try IbexInt.read(r) + VT.exp_bias;
+            // std.debug.print("exp={d}, max={d}\n", .{ exp, math.maxInt(VT.TExp) });
             if (exp >= math.maxInt(VT.TExp))
                 return IbexError.Overflow;
 
             var mant = try mantissa.readMantissa(VT.TMant, r);
 
+            if (VT.explicit_msb) {
+                mant >>= 1;
+                if (exp > 0) mant |= (@as(VT.TMant, 1) << VT.mant_bits - 1);
+            }
             // https://en.wikipedia.org/wiki/Subnormal_number
             if (exp <= 0) {
                 if (-exp >= VT.mant_bits)
@@ -260,6 +288,7 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrit
         const eps: TMax = @floatCast(math.floatEpsAt(TMin, @floatCast(value)));
         const want: TMax = @floatCast(value);
         const got: TMax = @floatCast(output);
+        // std.debug.print("want={f}\n got={f}\n", .{ guts(want), guts(got) });
         // std.debug.print("diff={d}, eps={d}\n", .{ @abs(got - want), eps });
         try std.testing.expect(@abs(got - want) <= eps);
     }
@@ -270,11 +299,12 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrit
     }
 }
 
-const FloatTypes = [_]type{ f16, f32, f64, f128 };
+const FloatTypes = [_]type{ f16, f32, f64, f80, f128 };
 
 test floatCodec {
     inline for (FloatTypes) |TWrite| {
         inline for (FloatTypes) |TRead| {
+            if (TRead == f80) continue;
             // std.debug.print("=== {any} -> {any} ===\n", .{ TWrite, TRead });
             const tvw = floatTestVector(TWrite);
             for (tvw.slice()) |value| {
