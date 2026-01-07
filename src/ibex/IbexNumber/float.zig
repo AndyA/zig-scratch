@@ -92,8 +92,29 @@ fn guts(v: anytype) FloatBits(@TypeOf(v)) {
 // }
 
 pub fn floatCodec(comptime T: type) type {
-    if (T == f80)
-        @compileError("IbexNumber does not support f80");
+    if (T == f80) {
+        const codec = floatCodec(f128);
+        return struct {
+            // Use f128 to handle f80
+            pub fn encodedLength(value: T) usize {
+                return codec.encodedLength(value);
+            }
+
+            pub fn read(r: *ByteReader) IbexError!T {
+                const res = try codec.read(r);
+                if (math.isFinite((res)) and
+                    (res < -math.floatMax(f80) or
+                        res > math.floatMax(f80)))
+                    return IbexError.Overflow;
+                return @floatCast(res);
+            }
+
+            pub fn write(w: *ByteWriter, value: T) IbexError!void {
+                try codec.write(w, value);
+            }
+        };
+    }
+
     const VT = FloatBits(T);
     assert(!VT.explicit_msb);
 
@@ -304,12 +325,11 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrit
     }
 }
 
-const FloatTypes = [_]type{ f16, f32, f64, f128 };
+const FloatTypes = [_]type{ f16, f32, f64, f80, f128 };
 
 test floatCodec {
     inline for (FloatTypes) |TWrite| {
         inline for (FloatTypes) |TRead| {
-            if (TRead == f80) continue;
             // std.debug.print("=== {any} -> {any} ===\n", .{ TWrite, TRead });
             const tvw = floatTestVector(TWrite);
             for (tvw.slice()) |value| {
