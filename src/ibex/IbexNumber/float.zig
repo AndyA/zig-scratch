@@ -71,6 +71,14 @@ fn guts(v: anytype) FloatBits(@TypeOf(v)) {
     return FloatBits(@TypeOf(v)).init(v);
 }
 
+// test "f80" {
+//     var x: f80 = math.floatEpsAt(f80, 0);
+//     for (0..65) |_| {
+//         std.debug.print("{f}\n", .{guts(x)});
+//         x *= 2;
+//     }
+// }
+
 // test "bits" {
 //     const types = [_]type{ f128, f80 };
 //     const values = [_]f80{ 0, 1.0, 2.0, 3.0, 255.0, math.floatMax(f80) };
@@ -84,7 +92,11 @@ fn guts(v: anytype) FloatBits(@TypeOf(v)) {
 // }
 
 pub fn floatCodec(comptime T: type) type {
+    if (T == f80)
+        @compileError("IbexNumber does not support f80");
     const VT = FloatBits(T);
+    assert(!VT.explicit_msb);
+
     return struct {
         fn massageFloat(value: T) struct { i64, VT.TMant } {
             const v = VT.init(@abs(value));
@@ -99,9 +111,6 @@ pub fn floatCodec(comptime T: type) type {
                 mant <<= @intCast(lz);
                 exp -= lz;
             }
-
-            if (VT.explicit_msb)
-                mant <<= 1;
 
             return .{ exp, mant };
         }
@@ -157,10 +166,6 @@ pub fn floatCodec(comptime T: type) type {
 
             var mant = try mantissa.readMantissa(VT.TMant, r);
 
-            if (VT.explicit_msb) {
-                mant >>= 1;
-                if (exp > 0) mant |= (@as(VT.TMant, 1) << VT.mant_bits - 1);
-            }
             // https://en.wikipedia.org/wiki/Subnormal_number
             if (exp <= 0) {
                 if (-exp >= VT.mant_bits)
@@ -299,7 +304,7 @@ fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrit
     }
 }
 
-const FloatTypes = [_]type{ f16, f32, f64, f80, f128 };
+const FloatTypes = [_]type{ f16, f32, f64, f128 };
 
 test floatCodec {
     inline for (FloatTypes) |TWrite| {
