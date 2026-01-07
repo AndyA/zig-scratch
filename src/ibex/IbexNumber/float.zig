@@ -91,6 +91,11 @@ fn guts(v: anytype) FloatBits(@TypeOf(v)) {
 //     }
 // }
 
+fn isOverflow(comptime T: type, value: anytype) bool {
+    return math.isFinite((value)) and
+        (value < -math.floatMax(T) or
+            value > math.floatMax(T));
+}
 pub fn floatCodec(comptime T: type) type {
     if (T == f80) {
         const codec = floatCodec(f128);
@@ -102,9 +107,7 @@ pub fn floatCodec(comptime T: type) type {
 
             pub fn read(r: *ByteReader) IbexError!T {
                 const res = try codec.read(r);
-                if (math.isFinite((res)) and
-                    (res < -math.floatMax(f80) or
-                        res > math.floatMax(f80)))
+                if (isOverflow(f80, res))
                     return IbexError.Overflow;
                 return @floatCast(res);
             }
@@ -271,12 +274,6 @@ fn TMost(comptime TA: type, comptime TB: type) type {
 
 fn TLeast(comptime TA: type, comptime TB: type) type {
     return if (@typeInfo(TA).float.bits < @typeInfo(TB).float.bits) TA else TB;
-}
-
-fn isOverflow(comptime T: type, value: anytype) bool {
-    return math.isFinite((value)) and
-        (value < -math.floatMax(T) or
-            value > math.floatMax(T));
 }
 
 fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: TMost(TWrite, TRead)) !void {
