@@ -105,15 +105,15 @@ pub fn floatCodec(comptime T: type) type {
                 return codec.encodedLength(value);
             }
 
+            pub fn write(w: *ByteWriter, value: T) IbexError!void {
+                try codec.write(w, value);
+            }
+
             pub fn read(r: *ByteReader) IbexError!T {
                 const res = try codec.read(r);
                 if (isOverflow(f80, res))
                     return IbexError.Overflow;
                 return @floatCast(res);
-            }
-
-            pub fn write(w: *ByteWriter, value: T) IbexError!void {
-                try codec.write(w, value);
             }
         };
     }
