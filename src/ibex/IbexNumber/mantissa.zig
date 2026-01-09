@@ -4,8 +4,9 @@ const assert = std.debug.assert;
 
 const ibex = @import("../ibex.zig");
 const IbexError = ibex.IbexError;
-const ByteReader = ibex.ByteReader;
-const ByteWriter = ibex.ByteWriter;
+const bytes = @import("../bytes.zig");
+const ByteReader = bytes.ByteReader;
+const ByteWriter = bytes.ByteWriter;
 
 fn sizeInBytes(comptime T: type, mant: T) u16 {
     const sig_bits = @typeInfo(T).int.bits - @ctz(mant);

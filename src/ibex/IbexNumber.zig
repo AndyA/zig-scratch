@@ -11,13 +11,13 @@ pub fn IbexNumber(comptime T: type) type {
 }
 
 fn testRoundTrip(comptime TWrite: type, comptime TRead: type, value: comptime_float) !void {
-    const ibex = @import("./ibex.zig");
+    const bytes = @import("./bytes.zig");
 
     var buf: [256]u8 = undefined;
-    var w = ibex.ByteWriter{ .buf = &buf };
+    var w = bytes.ByteWriter{ .buf = &buf };
     try IbexNumber(TWrite).write(&w, value);
 
-    var r = ibex.ByteReader{ .buf = w.slice() };
+    var r = bytes.ByteReader{ .buf = w.slice() };
     const res = try IbexNumber(TRead).read(&r);
     const got: f128 = switch (@typeInfo(TRead)) {
         .int => @floatFromInt(res),

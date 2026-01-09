@@ -3,7 +3,8 @@ const assert = std.debug.assert;
 
 const ibex = @import("../ibex.zig");
 const IbexTag = ibex.IbexTag;
-const ByteReader = ibex.ByteReader;
+const bytes = @import("../bytes.zig");
+const ByteReader = bytes.ByteReader;
 const IbexInt = @import("../IbexInt.zig");
 
 pub fn exactSame(a: anytype, b: anytype) bool {
@@ -46,8 +47,8 @@ pub fn TestVec(comptime T: type, comptime size: usize) type {
     };
 }
 
-pub fn checkFloat(bytes: []const u8) void {
-    var r = ByteReader{ .buf = bytes };
+pub fn checkFloat(buf: []const u8) void {
+    var r = ByteReader{ .buf = buf };
     defer assert(r.eof());
     const nb = r.next() catch unreachable;
     const tag: IbexTag = @enumFromInt(nb);

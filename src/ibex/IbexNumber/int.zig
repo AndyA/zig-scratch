@@ -5,8 +5,9 @@ const assert = std.debug.assert;
 const ibex = @import("../ibex.zig");
 const IbexTag = ibex.IbexTag;
 const IbexError = ibex.IbexError;
-const ByteReader = ibex.ByteReader;
-const ByteWriter = ibex.ByteWriter;
+const bytes = @import("../bytes.zig");
+const ByteReader = bytes.ByteReader;
+const ByteWriter = bytes.ByteWriter;
 const IbexInt = @import("../IbexInt.zig");
 const mantissa = @import("./mantissa.zig");
 
@@ -29,8 +30,8 @@ pub fn intCodec(comptime T: type) type {
                 return encodedLength(-value);
             }
             const msb = info.bits - @clz(value) - 1; // drop MSB
-            const bytes = (msb - @ctz(value) + 6) / 7;
-            return 1 + IbexInt.encodedLength(msb) + @max(1, bytes);
+            const byte_count = (msb - @ctz(value) + 6) / 7;
+            return 1 + IbexInt.encodedLength(msb) + @max(1, byte_count);
         }
 
         fn writeInt(w: *ByteWriter, value: T) IbexError!void {

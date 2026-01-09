@@ -5,8 +5,9 @@ const assert = std.debug.assert;
 const ibex = @import("../ibex.zig");
 const IbexTag = ibex.IbexTag;
 const IbexError = ibex.IbexError;
-const ByteReader = ibex.ByteReader;
-const ByteWriter = ibex.ByteWriter;
+const bytes = @import("../bytes.zig");
+const ByteReader = bytes.ByteReader;
+const ByteWriter = bytes.ByteWriter;
 const IbexInt = @import("../IbexInt.zig");
 const mantissa = @import("./mantissa.zig");
 

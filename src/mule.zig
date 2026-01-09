@@ -1,9 +1,9 @@
 const std = @import("std");
 
 const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
-const ibex = @import("./ibex/ibex.zig");
-const ByteWriter = ibex.ByteWriter;
-const ByteReader = ibex.ByteReader;
+const bytes = @import("./ibex/bytes.zig");
+const ByteWriter = bytes.ByteWriter;
+const ByteReader = bytes.ByteReader;
 
 pub fn main() !void {
     std.debug.print("Woof\n", .{});

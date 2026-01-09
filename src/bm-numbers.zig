@@ -3,8 +3,9 @@ const assert = std.debug.assert;
 
 const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
 const ibex = @import("./ibex/ibex.zig");
-const ByteWriter = ibex.ByteWriter;
-const ByteReader = ibex.ByteReader;
+const bytes = @import("./ibex/bytes.zig");
+const ByteWriter = bytes.ByteWriter;
+const ByteReader = bytes.ByteReader;
 
 const NUMBER_DATA = @embedFile("./ibex/testdata/numbers.bin");
 const NUMBER_COUNT = NUMBER_DATA.len / @sizeOf(f64);
