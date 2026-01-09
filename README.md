@@ -10,3 +10,7 @@ Oryx: fast encoding for object
 | JSON ⇢      |      ✔ |      ✔ |      🟰 |           ✔ |           ✔ |
 | JSONValue ⇢ |      ✔ |      ✔ |      ✔ |           🟰 |           ✘ |
 | OryxValue ⇢ |      ✔ |      ✔ |      ✔ |           ✘ |           🟰 |
+
+## Thinks
+
+- Ibex/Oryx native support for JS, Python (obv zig)

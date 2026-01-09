@@ -4,9 +4,7 @@ const assert = std.debug.assert;
 // Ibex and Oryx
 
 pub const IbexTag = enum(u8) {
-    Nop = 0x00, // padding maybe
-
-    End, // end of Object / Array - sorts before anything else
+    End = 0x0, // end of Object / Array - sorts before anything else
 
     Null,
     False,
