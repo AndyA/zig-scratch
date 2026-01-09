@@ -46,9 +46,9 @@ pub fn intCodec(comptime T: type) type {
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
             if (value == 0) {
-                try w.put(@intFromEnum(IbexTag.FloatPosZero));
+                try w.put(@intFromEnum(IbexTag.NumPosZero));
             } else if (value < 0) {
-                try w.put(@intFromEnum(IbexTag.FloatNeg));
+                try w.put(@intFromEnum(IbexTag.NumNeg));
                 w.negate();
                 defer w.negate();
                 if (value == min_int) {
@@ -59,7 +59,7 @@ pub fn intCodec(comptime T: type) type {
                     try writeInt(w, -value);
                 }
             } else {
-                try w.put(@intFromEnum(IbexTag.FloatPos));
+                try w.put(@intFromEnum(IbexTag.NumPos));
                 try writeInt(w, value);
             }
         }
@@ -100,11 +100,11 @@ pub fn intCodec(comptime T: type) type {
             const nb = try r.next();
             const tag: IbexTag = @enumFromInt(nb);
             return switch (tag) {
-                .FloatPosZero, .FloatNegZero => 0,
-                .FloatPos => readPosInt(r),
-                .FloatNeg => readNegInt(r),
-                .FloatNegInf, .FloatPosInf => IbexError.Overflow,
-                .FloatNegNaN, .FloatPosNaN => IbexError.Overflow,
+                .NumPosZero, .NumNegZero => 0,
+                .NumPos => readPosInt(r),
+                .NumNeg => readNegInt(r),
+                .NumNegInf, .NumPosInf => IbexError.Overflow,
+                .NumNegNaN, .NumPosNaN => IbexError.Overflow,
                 else => IbexError.InvalidData,
             };
         }

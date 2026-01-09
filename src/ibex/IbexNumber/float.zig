@@ -160,29 +160,29 @@ pub fn floatCodec(comptime T: type) type {
 
         pub fn write(w: *ByteWriter, value: T) IbexError!void {
             if (math.isNegativeInf(value))
-                return w.put(@intFromEnum(IbexTag.FloatNegInf))
+                return w.put(@intFromEnum(IbexTag.NumNegInf))
             else if (math.isPositiveInf(value))
-                return w.put(@intFromEnum(IbexTag.FloatPosInf))
+                return w.put(@intFromEnum(IbexTag.NumPosInf))
             else if (math.isNegativeZero(value))
-                return w.put(@intFromEnum(IbexTag.FloatNegZero))
+                return w.put(@intFromEnum(IbexTag.NumNegZero))
             else if (math.isPositiveZero(value))
-                return w.put(@intFromEnum(IbexTag.FloatPosZero))
+                return w.put(@intFromEnum(IbexTag.NumPosZero))
             else if (math.isNan(value)) {
                 const v = VT.init(value);
-                const tag: IbexTag = if (v.value.sign) .FloatNegNaN else .FloatPosNaN;
+                const tag: IbexTag = if (v.value.sign) .NumNegNaN else .NumPosNaN;
                 return w.put(@intFromEnum(tag));
             } else if (value < 0.0) {
-                try w.put(@intFromEnum(IbexTag.FloatNeg));
+                try w.put(@intFromEnum(IbexTag.NumNeg));
                 w.negate();
                 defer w.negate();
                 return writeFloat(w, -value);
             } else {
-                try w.put(@intFromEnum(IbexTag.FloatPos));
+                try w.put(@intFromEnum(IbexTag.NumPos));
                 return writeFloat(w, value);
             }
         }
 
-        fn readFloatPos(r: *ByteReader) IbexError!T {
+        fn readNumPos(r: *ByteReader) IbexError!T {
             var exp = try IbexInt.read(r) + VT.exp_bias;
             // std.debug.print("exp={d}, max={d}\n", .{ exp, math.maxInt(VT.TExp) });
             if (exp >= math.maxInt(VT.TExp))
@@ -206,24 +206,24 @@ pub fn floatCodec(comptime T: type) type {
             return v.get();
         }
 
-        fn readFloatNeg(r: *ByteReader) IbexError!T {
+        fn readNumNeg(r: *ByteReader) IbexError!T {
             r.negate();
             defer r.negate();
-            return -try readFloatPos(r);
+            return -try readNumPos(r);
         }
 
         pub fn read(r: *ByteReader) IbexError!T {
             const nb = try r.next();
             const tag: IbexTag = @enumFromInt(nb);
             return switch (tag) {
-                .FloatPosZero => 0.0,
-                .FloatNegZero => -0.0,
-                .FloatNegInf => -math.inf(T),
-                .FloatPosInf => math.inf(T),
-                .FloatNegNaN => -math.nan(T),
-                .FloatPosNaN => math.nan(T),
-                .FloatPos => readFloatPos(r),
-                .FloatNeg => readFloatNeg(r),
+                .NumPosZero => 0.0,
+                .NumNegZero => -0.0,
+                .NumNegInf => -math.inf(T),
+                .NumPosInf => math.inf(T),
+                .NumNegNaN => -math.nan(T),
+                .NumPosNaN => math.nan(T),
+                .NumPos => readNumPos(r),
+                .NumNeg => readNumNeg(r),
                 else => IbexError.InvalidData,
             };
         }

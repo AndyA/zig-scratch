@@ -13,14 +13,14 @@ pub const IbexTag = enum(u8) {
     True,
     String,
 
-    FloatNegNaN = 0x08,
-    FloatNegInf,
-    FloatNeg,
-    FloatNegZero,
-    FloatPosZero,
-    FloatPos,
-    FloatPosInf,
-    FloatPosNaN,
+    NumNegNaN = 0x08,
+    NumNegInf,
+    NumNeg,
+    NumNegZero,
+    NumPosZero,
+    NumPos,
+    NumPosInf,
+    NumPosNaN,
 
     Array = 0x10,
     Object,
@@ -38,8 +38,8 @@ pub const IbexTag = enum(u8) {
 };
 
 test IbexTag {
-    try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.FloatNegNaN));
-    try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.FloatPosNaN));
+    try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.NumNegNaN));
+    try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.NumPosNaN));
     try std.testing.expect(IbexTag.ibexSafe(.Object));
     try std.testing.expect(!IbexTag.ibexSafe(.OryxInt));
 }

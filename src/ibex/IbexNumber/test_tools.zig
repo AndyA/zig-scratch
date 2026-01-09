@@ -52,10 +52,10 @@ pub fn checkFloat(bytes: []const u8) void {
     const nb = r.next() catch unreachable;
     const tag: IbexTag = @enumFromInt(nb);
     switch (tag) {
-        .FloatPos => {},
-        .FloatNeg => r.negate(),
-        .FloatPosZero, .FloatPosInf, .FloatPosNaN => return,
-        .FloatNegZero, .FloatNegInf, .FloatNegNaN => return,
+        .NumPos => {},
+        .NumNeg => r.negate(),
+        .NumPosZero, .NumPosInf, .NumPosNaN => return,
+        .NumNegZero, .NumNegInf, .NumNegNaN => return,
         else => unreachable,
     }
     _ = IbexInt.read(&r) catch unreachable;
