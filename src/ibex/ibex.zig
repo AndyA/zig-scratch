@@ -3,6 +3,8 @@ const assert = std.debug.assert;
 
 // Ibex and Oryx
 
+const OryxBase = 0x18;
+
 pub const IbexTag = enum(u8) {
     End = 0x0, // end of Object / Array - sorts before anything else
 
@@ -22,6 +24,13 @@ pub const IbexTag = enum(u8) {
 
     Array = 0x10,
     Object,
+
+    // Additional Oryx encodings
+    Int = OryxBase, // IbexInt
+    CountedString, // len: IbexInt, str: []u8
+    CountedArray, // len: IbexInt, values: []OryxValue
+    CountedObject, // class: IbexInt, len: IbexInt, values: []OryxValue
+    CountedClass, // parent: IbexInt, len: IbexInt, keys: []String
 };
 
 test IbexTag {
