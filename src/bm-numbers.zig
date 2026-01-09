@@ -34,6 +34,12 @@ pub fn main() !void {
     defer arena.deinit();
     const gpa = arena.allocator();
 
+    // {
+    //     var timer = try std.time.Timer.start();
+    //     std.posix.nanosleep(1, 0);
+    //     showRate("calibrate", 1_000_000, &timer);
+    // }
+
     const numbers = getTestData();
     const codec = IbexNumber(f64);
 
