@@ -34,7 +34,7 @@ pub const IbexTag = enum(u8) {
     OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
 
     pub fn indexSafe(tag: IbexTag) bool {
-        return @intFromEnum(tag) < @intFromEnum(IbexTag.OryxInt);
+        return @intFromEnum(tag) < @intFromEnum(IbexTag.Multi);
     }
 };
 
