@@ -2,12 +2,16 @@ const std = @import("std");
 const assert = std.debug.assert;
 
 pub const IbexTag = enum(u8) {
+    Nop = 0x00, // padding maybe
+
     End, // end of Object / Array - sorts before anything else
+
     Null,
     False,
     True,
     String,
-    FloatNegNaN,
+
+    FloatNegNaN = 0x08,
     FloatNegInf,
     FloatNeg,
     FloatNegZero,
@@ -15,9 +19,15 @@ pub const IbexTag = enum(u8) {
     FloatPos,
     FloatPosInf,
     FloatPosNaN,
-    Array,
+
+    Array = 0x10,
     Object,
 };
+
+test IbexTag {
+    try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.FloatNegNaN));
+    try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.FloatPosNaN));
+}
 
 pub const IbexError = error{
     InvalidData,
