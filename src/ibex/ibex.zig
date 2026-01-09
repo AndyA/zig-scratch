@@ -3,34 +3,36 @@ const assert = std.debug.assert;
 
 // Ibex and Oryx
 
-const OryxBase = 0x10;
-
 pub const IbexTag = enum(u8) {
-    End = 0x0, // end of Object / Array - sorts before anything else
+    pub const OryxBase = @intFromEnum(IbexTag.OryxString);
 
-    Null,
-    False,
-    True,
-    String,
+    End = 0x00, // end of Object / Array - sorts before anything else
 
-    NumNegNaN,
-    NumNegInf,
-    NumNeg,
-    NumNegZero,
-    NumPosZero,
-    NumPos,
-    NumPosInf,
-    NumPosNaN,
+    Null = 0x01,
+    False = 0x02,
+    True = 0x03,
+    String = 0x04,
 
-    Array,
-    Object,
+    NumNegNaN = 0x05,
+    NumNegInf = 0x06,
+    NumNeg = 0x07,
+    NumNegZero = 0x08,
+    NumPosZero = 0x09,
+    NumPos = 0x0a,
+    NumPosInf = 0x0b,
+    NumPosNaN = 0x0c,
+
+    Array = 0x0d,
+    Object = 0x0e,
+
+    Nop = 0x0f,
 
     // Additional Oryx encodings
-    OryxString = OryxBase, // len: IbexInt, str: []u8
-    OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
-    OryxInt, // IbexInt
-    OryxArray, // len: IbexInt, values: []IbexValue
-    OryxObject, // class: IbexInt, len: IbexInt, values: []IbexValue
+    OryxString = 0x10, // len: IbexInt, str: []u8
+    OryxClass = 0x11, // parent: IbexInt, len: IbexInt, keys: []String
+    OryxInt = 0x12, // IbexInt
+    OryxArray = 0x13, // len: IbexInt, values: []IbexValue
+    OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
 
     pub fn indexSafe(tag: IbexTag) bool {
         return @intFromEnum(tag) < OryxBase;
