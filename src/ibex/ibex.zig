@@ -26,11 +26,11 @@ pub const IbexTag = enum(u8) {
     Object,
 
     // Additional Oryx encodings
-    Int = OryxBase, // IbexInt
-    CountedString, // len: IbexInt, str: []u8
-    CountedArray, // len: IbexInt, values: []OryxValue
-    CountedObject, // class: IbexInt, len: IbexInt, values: []OryxValue
-    CountedClass, // parent: IbexInt, len: IbexInt, keys: []String
+    OryxInt = OryxBase, // IbexInt
+    OryxString, // len: IbexInt, str: []u8
+    OryxArray, // len: IbexInt, values: []OryxValue
+    OryxObject, // class: IbexInt, len: IbexInt, values: []OryxValue
+    OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
 };
 
 test IbexTag {
