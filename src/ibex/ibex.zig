@@ -4,7 +4,7 @@ const assert = std.debug.assert;
 // Ibex and Oryx
 
 pub const IbexTag = enum(u8) {
-    pub const OryxBase = @intFromEnum(IbexTag.OryxString);
+    pub const OryxBase = @intFromEnum(IbexTag.OryxClass);
 
     End = 0x00, // end of Object / Array - sorts before anything else
 
