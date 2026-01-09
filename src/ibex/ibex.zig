@@ -26,11 +26,11 @@ pub const IbexTag = enum(u8) {
     Object,
 
     // Additional Oryx encodings
-    OryxInt = OryxBase, // IbexInt
-    OryxString, // len: IbexInt, str: []u8
+    OryxString = OryxBase, // len: IbexInt, str: []u8
+    OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
+    OryxInt, // IbexInt
     OryxArray, // len: IbexInt, values: []IbexValue
     OryxObject, // class: IbexInt, len: IbexInt, values: []IbexValue
-    OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
 
     pub fn ibexSafe(tag: IbexTag) bool {
         return @intFromEnum(tag) < OryxBase;
