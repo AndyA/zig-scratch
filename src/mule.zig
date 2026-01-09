@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const IbexNumber = @import("./ibex//IbexNumber.zig").IbexNumber;
+const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
 const ibex = @import("./ibex/ibex.zig");
 const ByteWriter = ibex.ByteWriter;
 const ByteReader = ibex.ByteReader;
