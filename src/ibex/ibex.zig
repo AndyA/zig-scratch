@@ -23,12 +23,15 @@ pub const IbexTag = enum(u8) {
     Array = 0x0d,
     Object = 0x0e,
 
+    // Behaves like Array; represents something like NDJSON - a sequence of objects.
+    Multi = 0x0f,
+
     // Additional Oryx encodings
-    OryxInt = 0x0f, // value: IbexInt
-    OryxString = 0x10, // len: IbexInt, str: []u8
-    OryxClass = 0x11, // parent: IbexInt, len: IbexInt, keys: []{len: IbexInt, str: []u8}
-    OryxArray = 0x12, // len: IbexInt, values: []IbexValue
-    OryxObject = 0x13, // class: IbexInt, len: IbexInt, values: []IbexValue
+    OryxInt = 0x10, // value: IbexInt
+    OryxString = 0x11, // len: IbexInt, str: []u8
+    OryxClass = 0x12, // parent: IbexInt, len: IbexInt, keys: []{len: IbexInt, str: []u8}
+    OryxArray = 0x13, // len: IbexInt, values: []IbexValue
+    OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
 
     pub fn indexSafe(tag: IbexTag) bool {
         return @intFromEnum(tag) < @intFromEnum(IbexTag.OryxInt);
