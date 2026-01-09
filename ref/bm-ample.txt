@@ -1,8 +1,4 @@
-Fri Jan  9 03:14:23 GMT 2026 - a15e840 - ample
-       encodedLength:            441020792/s
-               write:            111068814/s
-                read:            147779265/s
-Fri Jan  9 03:20:27 GMT 2026 - b1e2c63 - ample
-       encodedLength:            432948210/s
-               write:            111543711/s
-                read:            150228003/s
+2026-01-09T03:44:41+00:00 - ed63839 - ample
+       encodedLength:            445619245/s
+               write:            114442708/s
+                read:            152618706/s
