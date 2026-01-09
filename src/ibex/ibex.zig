@@ -32,7 +32,7 @@ pub const IbexTag = enum(u8) {
     OryxArray, // len: IbexInt, values: []IbexValue
     OryxObject, // class: IbexInt, len: IbexInt, values: []IbexValue
 
-    pub fn ibexSafe(tag: IbexTag) bool {
+    pub fn indexSafe(tag: IbexTag) bool {
         return @intFromEnum(tag) < OryxBase;
     }
 };
@@ -40,8 +40,8 @@ pub const IbexTag = enum(u8) {
 test IbexTag {
     try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.NumNegNaN));
     try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.NumPosNaN));
-    try std.testing.expect(IbexTag.ibexSafe(.Object));
-    try std.testing.expect(!IbexTag.ibexSafe(.OryxInt));
+    try std.testing.expect(IbexTag.indexSafe(.Object));
+    try std.testing.expect(!IbexTag.indexSafe(.OryxString));
 }
 
 pub const IbexError = error{
