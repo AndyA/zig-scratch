@@ -28,8 +28,8 @@ pub const IbexTag = enum(u8) {
     Nop = 0x0f,
 
     // Additional Oryx encodings
-    OryxString = 0x10, // len: IbexInt, str: []u8
-    OryxClass = 0x11, // parent: IbexInt, len: IbexInt, keys: []String
+    OryxClass = 0x10, // parent: IbexInt, len: IbexInt, keys: []String
+    OryxString = 0x11, // len: IbexInt, str: []u8
     OryxInt = 0x12, // IbexInt
     OryxArray = 0x13, // len: IbexInt, values: []IbexValue
     OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
@@ -41,7 +41,7 @@ pub const IbexTag = enum(u8) {
 
 test IbexTag {
     try std.testing.expect(IbexTag.indexSafe(.Object));
-    try std.testing.expect(!IbexTag.indexSafe(.OryxString));
+    try std.testing.expect(!IbexTag.indexSafe(.OryxClass));
 }
 
 pub const IbexError = error{
