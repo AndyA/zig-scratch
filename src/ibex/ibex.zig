@@ -4,8 +4,6 @@ const assert = std.debug.assert;
 // Ibex and Oryx
 
 pub const IbexTag = enum(u8) {
-    pub const OryxBase = @intFromEnum(IbexTag.OryxInt);
-
     End = 0x00, // end of Object / Array - sorts before anything else
 
     Null = 0x01,
@@ -33,13 +31,13 @@ pub const IbexTag = enum(u8) {
     OryxObject = 0x13, // class: IbexInt, len: IbexInt, values: []IbexValue
 
     pub fn indexSafe(tag: IbexTag) bool {
-        return @intFromEnum(tag) < OryxBase;
+        return @intFromEnum(tag) < @intFromEnum(IbexTag.OryxInt);
     }
 };
 
 test IbexTag {
     try std.testing.expect(IbexTag.indexSafe(.Object));
-    try std.testing.expect(!IbexTag.indexSafe(.OryxClass));
+    try std.testing.expect(!IbexTag.indexSafe(.OryxInt));
 }
 
 pub const IbexError = error{
