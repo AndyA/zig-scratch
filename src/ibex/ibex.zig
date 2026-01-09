@@ -1,6 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
+// Ibex and Oryx
+
 pub const IbexTag = enum(u8) {
     Nop = 0x00, // padding maybe
 
