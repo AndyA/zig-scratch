@@ -31,11 +31,17 @@ pub const IbexTag = enum(u8) {
     OryxArray, // len: IbexInt, values: []IbexValue
     OryxObject, // class: IbexInt, len: IbexInt, values: []IbexValue
     OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
+
+    pub fn ibexSafe(tag: IbexTag) bool {
+        return @intFromEnum(tag) < OryxBase;
+    }
 };
 
 test IbexTag {
     try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.FloatNegNaN));
     try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.FloatPosNaN));
+    try std.testing.expect(IbexTag.ibexSafe(.Object));
+    try std.testing.expect(!IbexTag.ibexSafe(.OryxInt));
 }
 
 pub const IbexError = error{
