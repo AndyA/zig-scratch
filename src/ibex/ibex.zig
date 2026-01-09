@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 
 // Ibex and Oryx
 
-const OryxBase = 0x18;
+const OryxBase = 0x10;
 
 pub const IbexTag = enum(u8) {
     End = 0x0, // end of Object / Array - sorts before anything else
@@ -13,7 +13,7 @@ pub const IbexTag = enum(u8) {
     True,
     String,
 
-    NumNegNaN = 0x08,
+    NumNegNaN,
     NumNegInf,
     NumNeg,
     NumNegZero,
@@ -22,7 +22,7 @@ pub const IbexTag = enum(u8) {
     NumPosInf,
     NumPosNaN,
 
-    Array = 0x10,
+    Array,
     Object,
 
     // Additional Oryx encodings
@@ -38,8 +38,6 @@ pub const IbexTag = enum(u8) {
 };
 
 test IbexTag {
-    try std.testing.expectEqual(0x08, @intFromEnum(IbexTag.NumNegNaN));
-    try std.testing.expectEqual(0x0f, @intFromEnum(IbexTag.NumPosNaN));
     try std.testing.expect(IbexTag.indexSafe(.Object));
     try std.testing.expect(!IbexTag.indexSafe(.OryxString));
 }
