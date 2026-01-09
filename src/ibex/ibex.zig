@@ -40,7 +40,7 @@ pub const IbexTag = enum(u8) {
 
 test IbexTag {
     try std.testing.expect(IbexTag.indexSafe(.Object));
-    try std.testing.expect(!IbexTag.indexSafe(.OryxInt));
+    try std.testing.expect(!IbexTag.indexSafe(.Multi));
 }
 
 pub const IbexError = error{
