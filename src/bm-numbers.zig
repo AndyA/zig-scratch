@@ -8,6 +8,7 @@ const ByteReader = ibex.ByteReader;
 
 const NUMBER_DATA = @embedFile("./ibex/testdata/numbers.bin");
 const NUMBER_COUNT = NUMBER_DATA.len / @sizeOf(f64);
+const REPEATS = 1000;
 
 const TVT = [NUMBER_COUNT]f64;
 
@@ -36,14 +37,17 @@ pub fn main() !void {
     const numbers = getTestData();
     const codec = IbexNumber(f64);
 
-    var enc_size: usize = 0;
+    var enc_size: usize = undefined;
 
     {
         var timer = try std.time.Timer.start();
-        for (numbers) |n| {
-            enc_size += codec.encodedLength(n);
+        for (0..REPEATS) |_| {
+            enc_size = 0;
+            for (numbers) |n| {
+                enc_size += codec.encodedLength(n);
+            }
         }
-        showRate("encodedLength", numbers.len, &timer);
+        showRate("encodedLength", numbers.len * REPEATS, &timer);
         // std.debug.print("size: {d}\n", .{enc_size});
     }
 
@@ -53,11 +57,14 @@ pub fn main() !void {
     var w = ByteWriter{ .buf = enc_buf };
     {
         var timer = try std.time.Timer.start();
-        for (numbers) |n| {
-            try codec.write(&w, n);
+        for (0..REPEATS) |_| {
+            w.pos = 0;
+            for (numbers) |n| {
+                try codec.write(&w, n);
+            }
+            assert(w.pos == enc_size);
         }
-        assert(w.pos == enc_size);
-        showRate("write", numbers.len, &timer);
+        showRate("write", numbers.len * REPEATS, &timer);
     }
 
     const output = try gpa.alloc(f64, numbers.len);
@@ -66,11 +73,14 @@ pub fn main() !void {
     var r = ByteReader{ .buf = w.slice() };
     {
         var timer = try std.time.Timer.start();
-        for (0..numbers.len) |i| {
-            output[i] = try codec.read(&r);
+        for (0..REPEATS) |_| {
+            r.pos = 0;
+            for (0..numbers.len) |i| {
+                output[i] = try codec.read(&r);
+            }
+            assert(w.pos == r.pos);
         }
-        assert(w.pos == r.pos);
-        showRate("read", numbers.len, &timer);
+        showRate("read", numbers.len * REPEATS, &timer);
     }
 
     for (numbers, 0..) |n, i| {
