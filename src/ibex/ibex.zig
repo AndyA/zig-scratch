@@ -28,8 +28,8 @@ pub const IbexTag = enum(u8) {
     // Additional Oryx encodings
     OryxInt = OryxBase, // IbexInt
     OryxString, // len: IbexInt, str: []u8
-    OryxArray, // len: IbexInt, values: []OryxValue
-    OryxObject, // class: IbexInt, len: IbexInt, values: []OryxValue
+    OryxArray, // len: IbexInt, values: []IbexValue
+    OryxObject, // class: IbexInt, len: IbexInt, values: []IbexValue
     OryxClass, // parent: IbexInt, len: IbexInt, keys: []String
 };
 
