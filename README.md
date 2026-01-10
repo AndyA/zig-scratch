@@ -13,6 +13,7 @@ Oryx: fast encoding for object
 ## Thinks
 
 - Ibex/Oryx native support for JS, Python (obv zig)
+- Remove per-length offset from `IbexInt`.
 
 ## Ibex
 
