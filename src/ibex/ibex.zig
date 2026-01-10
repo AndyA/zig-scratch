@@ -30,10 +30,6 @@ pub const IbexTag = enum(u8) {
     OryxInt = 0x10, // value: IbexInt
     OryxString = 0x11, // len: IbexInt, str: []u8
 
-    // A shadow class as a list of keys. The len field is the total byte size of the keys
-    // array so that we can scoop the keys up as a single chunk of bytes and use it as a key
-    // in a hash if we want to - as an alternative to walking across the shadow class tree
-    // a key at a time.
     OryxClass = 0x12, // parent: IbexInt, len: IbexInt, keys: []{len: IbexInt, str: []u8}
     OryxArray = 0x13, // len: IbexInt, values: []IbexValue
     OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
