@@ -30,9 +30,9 @@ pub const IbexTag = enum(u8) {
     OryxInt = 0x10, // value: IbexInt
     OryxString = 0x11, // len: IbexInt, str: []u8
 
-    OryxClass = 0x12, // parent: IbexInt, len: IbexInt, keys: []{len: IbexInt, str: []u8}
-    OryxArray = 0x13, // len: IbexInt, values: []IbexValue
-    OryxObject = 0x14, // class: IbexInt, len: IbexInt, values: []IbexValue
+    OryxClass = 0x12, // parent: IbexInt, count: IbexInt, keys: []{len: IbexInt, str: []u8}
+    OryxArray = 0x13, // count: IbexInt, values: []IbexValue
+    OryxObject = 0x14, // class: IbexInt, count: IbexInt, values: []IbexValue
 
     pub fn indexSafe(tag: IbexTag) bool {
         return @intFromEnum(tag) < @intFromEnum(IbexTag.Multi);
