@@ -17,6 +17,6 @@ Oryx: fast encoding for object
 ## Ibex
 
 - support for NDJSON (minor)
-- ordered representation
+- optional ordered representation
 - unbounded numeric precison / huge range (+/- 2^2^63-1)
 - shadow class object representation

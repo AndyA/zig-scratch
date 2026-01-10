@@ -68,30 +68,6 @@ fn FloatBits(comptime T: type) type {
     };
 }
 
-fn guts(v: anytype) FloatBits(@TypeOf(v)) {
-    return FloatBits(@TypeOf(v)).init(v);
-}
-
-// test "f80" {
-//     var x: f80 = math.floatEpsAt(f80, 0);
-//     for (0..65) |_| {
-//         std.debug.print("{f}\n", .{guts(x)});
-//         x *= 2;
-//     }
-// }
-
-// test "bits" {
-//     const types = [_]type{ f128, f80 };
-//     const values = [_]f80{ 0, 1.0, 2.0, 3.0, 255.0, math.floatMax(f80) };
-//     inline for (types) |T| {
-//         for (values) |value| {
-//             const FB = FloatBits(T);
-//             const v = FB.init(value);
-//             std.debug.print("{any:>5} {d:>10} -> {f}\n", .{ T, value, v });
-//         }
-//     }
-// }
-
 fn isOverflow(comptime T: type, value: anytype) bool {
     return math.isFinite((value)) and
         (value < -math.floatMax(T) or
