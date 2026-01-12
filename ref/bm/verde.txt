@@ -26,3 +26,10 @@
 [ IbexNumber/f64                           ]        encodedLength:            245594088 / s
 [ IbexNumber/f64                           ]                write:             71678066 / s
 [ IbexNumber/f64                           ]                 read:            118969400 / s
+2026-01-12T18:06:24+00:00 - a30b34d - verde - 0.16.0-dev.2187+e2338edb4
+[ IbexNumber/f64                           ]        encodedLength:            290329403 / s
+[ IbexNumber/f64                           ]                write:             79495072 / s
+[ IbexNumber/f64                           ]                 read:            108499268 / s
+[ IbexInt/lengths                          ]        encodedLength:           1595310320 / s
+[ IbexInt/lengths                          ]                write:           1457797978 / s
+[ IbexInt/lengths                          ]                 read:            916879978 / s
