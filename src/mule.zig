@@ -8,4 +8,6 @@ test {
     _ = @import("./tree.zig");
     _ = @import("./ibex/IbexInt.zig");
     _ = @import("./ibex/IbexNumber.zig");
+    _ = @import("./support/bm.zig");
+    _ = @import("./support/wildcard.zig");
 }
