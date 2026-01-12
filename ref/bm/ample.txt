@@ -10,3 +10,10 @@
 [ IbexNumber/f64                           ]       encodedLength:            458706548 / s
 [ IbexNumber/f64                           ]               write:            116725128 / s
 [ IbexNumber/f64                           ]                read:            168605378 / s
+2026-01-12T18:13:37+00:00 - 054a5ec - ample - 0.16.0-dev.2187+e2338edb4
+[ IbexNumber/f64                           ]        encodedLength:            442862507 / s
+[ IbexNumber/f64                           ]                write:            110032756 / s
+[ IbexNumber/f64                           ]                 read:            141630073 / s
+[ IbexInt/lengths                          ]        encodedLength:           2693773963 / s
+[ IbexInt/lengths                          ]                write:           2220144332 / s
+[ IbexInt/lengths                          ]                 read:           1233782698 / s
