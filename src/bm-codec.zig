@@ -18,8 +18,7 @@ const Benchmarks = struct {
     pub fn @"IbexInt/lengths"(io: std.Io, gpa: Allocator, name: []const u8) !void {
         const numbers = try bm.loadTestData(i64, io, gpa, "ref/testdata/i64lengths.bin");
         defer gpa.free(numbers);
-        const codec = IbexInt;
-        try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 5000, .name = name });
+        try bm.benchmarkCodec(gpa, IbexInt, numbers, .{ .repeats = 5000, .name = name });
     }
 };
 
