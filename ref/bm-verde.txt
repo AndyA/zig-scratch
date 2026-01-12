@@ -18,3 +18,7 @@
 [     IbexNumber(f64)]       encodedLength:            295870418/s
 [     IbexNumber(f64)]               write:             82126726/s
 [     IbexNumber(f64)]                read:            116283871/s
+2026-01-12T16:34:04+00:00 - 9b52925 - verde - 0.16.0-dev.2145+ec25b1384
+[     IbexNumber(f64)]        encodedLength:            299896288/s
+[     IbexNumber(f64)]                write:             83068609/s
+[     IbexNumber(f64)]                 read:            119910554/s
