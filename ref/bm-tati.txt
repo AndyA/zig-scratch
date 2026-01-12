@@ -2,3 +2,7 @@
        encodedLength:             93510475/s
                write:             46984319/s
                 read:             57573964/s
+2026-01-12T13:56:04+00:00 - 6c688fc - tati - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            191291160/s
+               write:            116317710/s
+                read:             96351202/s
