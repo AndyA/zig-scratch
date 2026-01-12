@@ -11,7 +11,6 @@ const Benchmarks = struct {
         const numbers = try bm.loadTestData(f64, io, gpa, "ref/testdata/numbers.bin");
         defer gpa.free(numbers);
         const codec = IbexNumber(f64);
-
         try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000, .name = name });
     }
 };
