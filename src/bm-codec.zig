@@ -4,11 +4,10 @@ const Allocator = std.mem.Allocator;
 
 const wildMatch = @import("./support/wildcard.zig").wildMatch;
 const bm = @import("./support/bm.zig");
-const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
-const IbexInt = @import("./ibex/IbexInt.zig");
 
 const Benchmarks = struct {
     pub fn @"IbexNumber/f64"(io: std.Io, gpa: Allocator, comptime name: []const u8) !void {
+        const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
         const numbers = try bm.loadTestData(f64, io, gpa, "ref/testdata/f64sample.bin");
         defer gpa.free(numbers);
         const codec = IbexNumber(f64);
@@ -16,6 +15,7 @@ const Benchmarks = struct {
     }
 
     pub fn @"IbexInt/lengths"(io: std.Io, gpa: Allocator, comptime name: []const u8) !void {
+        const IbexInt = @import("./ibex/IbexInt.zig");
         const numbers = try bm.loadTestData(i64, io, gpa, "ref/testdata/i64lengths.bin");
         defer gpa.free(numbers);
         try bm.benchmarkCodec(gpa, IbexInt, numbers, .{ .repeats = 5000, .name = name });
