@@ -23,17 +23,9 @@ const Benchmarks = struct {
     }
 };
 
-pub fn main(init: std.process.Init.Minimal) !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const gpa = arena.allocator();
-
-    var threaded: std.Io.Threaded = .init(gpa, .{ .environ = init.environ });
-    defer threaded.deinit();
-    const io = threaded.io();
-
-    const args = try init.args.toSlice(gpa);
-    defer gpa.free(args);
+pub fn main(init: std.process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.gpa);
+    defer init.gpa.free(args);
     const info = @typeInfo(Benchmarks);
 
     inline for (info.@"struct".decls) |d| {
@@ -48,7 +40,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
         };
         if (selected) {
             const bm_fun = @field(Benchmarks, d.name);
-            try bm_fun(io, gpa, d.name);
+            try bm_fun(init.io, init.gpa, d.name);
         }
     }
 }
