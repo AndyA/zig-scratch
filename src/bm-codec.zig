@@ -25,9 +25,8 @@ const Benchmarks = struct {
 pub fn main(init: std.process.Init) !void {
     const args = try init.minimal.args.toSlice(init.gpa);
     defer init.gpa.free(args);
-    const info = @typeInfo(Benchmarks);
 
-    inline for (info.@"struct".decls) |d| {
+    inline for (@typeInfo(Benchmarks).@"struct".decls) |d| {
         const selected = blk: {
             if (args.len == 1)
                 break :blk true;
