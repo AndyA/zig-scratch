@@ -16,11 +16,13 @@ pub fn bitCount(comptime T: type) usize {
 
 pub fn loadTestData(comptime T: type, io: std.Io, gpa: Allocator, comptime file: []const u8) ![]T {
     const IT = @Int(.unsigned, bitCount(T));
-    const data = try std.Io.Dir.cwd().readFileAlloc(io, file, gpa, .unlimited);
-    const data_count = data.len / @sizeOf(T);
-    defer gpa.free(data);
-    var buf = try gpa.alloc(T, data_count);
-    for (0..data_count) |i| {
+
+    const raw = try std.Io.Dir.cwd().readFileAlloc(io, file, gpa, .unlimited);
+    defer gpa.free(raw);
+
+    const data: []const IT = @ptrCast(@alignCast(raw));
+    var buf = try gpa.alloc(T, data.len);
+    for (0..data.len) |i| {
         buf[i] = @bitCast(std.mem.bigToNative(IT, data[i]));
     }
     return buf;
