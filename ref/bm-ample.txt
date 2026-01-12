@@ -6,3 +6,7 @@
        encodedLength:            446142944/s
                write:            114373685/s
                 read:            154700370/s
+2026-01-12T14:53:38+00:00 - 8b2ae78 - ample - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            458706548/s
+               write:            116725128/s
+                read:            168605378/s
