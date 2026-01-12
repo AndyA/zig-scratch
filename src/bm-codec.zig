@@ -19,7 +19,7 @@ const Benchmarks = struct {
         const numbers = try bm.loadTestData(i64, io, gpa, "ref/testdata/i64lengths.bin");
         defer gpa.free(numbers);
         const codec = IbexInt;
-        try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 2000, .name = name });
+        try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 5000, .name = name });
     }
 };
 
@@ -38,6 +38,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
     inline for (info.@"struct".decls) |d| {
         const selected = blk: {
+            if (args.len == 1)
+                break :blk true;
             for (args[1..]) |arg| {
                 if (wildMatch(arg, d.name))
                     break :blk true;

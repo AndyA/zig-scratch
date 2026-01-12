@@ -17,3 +17,10 @@
 [ IbexInt/lengths                          ]        encodedLength:           2693773963 / s
 [ IbexInt/lengths                          ]                write:           2220144332 / s
 [ IbexInt/lengths                          ]                 read:           1233782698 / s
+2026-01-12T21:20:56+00:00 - 3c6f1db - ample - 0.16.0-dev.2187+e2338edb4
+[ IbexNumber/f64                           ]        encodedLength:            456892376 / s
+[ IbexNumber/f64                           ]                write:            110450324 / s
+[ IbexNumber/f64                           ]                 read:            144717767 / s
+[ IbexInt/lengths                          ]        encodedLength:           2714771942 / s
+[ IbexInt/lengths                          ]                write:           2234557102 / s
+[ IbexInt/lengths                          ]                 read:           1226025355 / s
