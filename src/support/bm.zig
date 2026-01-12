@@ -9,8 +9,7 @@ const ByteReader = bytes.ByteReader;
 
 pub fn bitCount(comptime T: type) usize {
     return switch (@typeInfo(T)) {
-        .float => |f| f.bits,
-        .int => |i| i.bits,
+        inline .float, .int => |info| info.bits,
         else => unreachable,
     };
 }
