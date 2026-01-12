@@ -6,6 +6,26 @@ const bytes = @import("../ibex/bytes.zig");
 const ByteWriter = bytes.ByteWriter;
 const ByteReader = bytes.ByteReader;
 
+pub fn bitCount(comptime T: type) usize {
+    return switch (@typeInfo(T)) {
+        .float => |f| f.bits,
+        .int => |i| i.bits,
+        else => unreachable,
+    };
+}
+
+pub fn loadTestData(comptime T: type, io: std.Io, gpa: Allocator, comptime file: []const u8) ![]T {
+    const IT = @Int(.unsigned, bitCount(T));
+    const data = try std.Io.Dir.cwd().readFileAlloc(io, file, gpa, .unlimited);
+    const data_count = data.len / @sizeOf(T);
+    defer gpa.free(data);
+    var buf = try gpa.alloc(T, data_count);
+    for (0..data_count) |i| {
+        buf[i] = @bitCast(std.mem.bigToNative(IT, data[i]));
+    }
+    return buf;
+}
+
 pub fn showRate(name: []const u8, total: usize, timer: *std.time.Timer) void {
     const elapsed = timer.lap();
     // std.debug.print("elapsed={d}\n", .{elapsed});
