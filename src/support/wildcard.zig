@@ -4,28 +4,22 @@ pub fn wildMatch(pattern: []const u8, target: []const u8) bool {
     // std.debug.print("wildMatch(\"{s}\", \"{s}\")\n", .{ pattern, target });
     var tpos: usize = 0;
     for (pattern, 0..) |c, i| {
-        switch (c) {
-            '*' => {
-                const tail = pattern[i + 1 ..];
-                while (true) : (tpos += 1) {
-                    if (wildMatch(tail, target[tpos..]))
-                        return true;
-                    if (tpos == target.len) return false;
-                }
-            },
-            '?' => {
-                if (tpos == target.len)
-                    return false;
-                tpos += 1;
-            },
-            else => {
-                if (tpos == target.len)
-                    return false;
-                if (c != target[tpos])
-                    return false;
-                tpos += 1;
-            },
+        if (c == '*') {
+            const tail = pattern[i + 1 ..];
+            while (true) : (tpos += 1) {
+                if (wildMatch(tail, target[tpos..]))
+                    return true;
+                if (tpos == target.len) return false;
+            }
         }
+
+        if (tpos == target.len)
+            return false;
+
+        if (c != '?' and c != target[tpos])
+            return false;
+
+        tpos += 1;
     }
     return tpos == target.len;
 }
