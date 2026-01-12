@@ -2,3 +2,15 @@
        encodedLength:            285843603/s
                write:             85481705/s
                 read:            118366977/s
+2026-01-12T12:08:52+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            273250106/s
+               write:             83773395/s
+                read:            115283214/s
+2026-01-12T12:11:55+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            276331967/s
+               write:             83766872/s
+                read:            115431235/s
+2026-01-12T12:18:00+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            294478354/s
+               write:             82481302/s
+                read:            115281172/s
