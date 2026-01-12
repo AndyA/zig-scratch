@@ -45,6 +45,7 @@ pub const BMOptions = struct {
 
 pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options: BMOptions) !void {
     var enc_size: usize = undefined;
+    const CT = @typeInfo(@TypeOf(numbers)).pointer.child;
 
     {
         var timer = try Timer.start();
@@ -75,7 +76,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
             showRate(options.name, "write", numbers.len * options.repeats, &timer);
     }
 
-    const output = try gpa.alloc(f64, numbers.len);
+    const output = try gpa.alloc(CT, numbers.len);
     defer gpa.free(output);
 
     var r = ByteReader{ .buf = w.slice() };
