@@ -6,7 +6,8 @@ hash=$(git rev-parse --short HEAD)
 zig=$(zig version)
 host=$(hostname -s)
 stamp=$(date -Iseconds)
-bmfile="ref/bm-$host.txt"
+mkdir -p "ref/bm"
+bmfile="ref/bm/$host.txt"
 
 zig build -Doptimize=ReleaseFast
 echo "$stamp - $hash - $host - $zig" | tee -a $bmfile

@@ -8,7 +8,7 @@ const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
 
 const Benchmarks = struct {
     pub fn @"IbexNumber/f64"(io: std.Io, gpa: Allocator, name: []const u8) !void {
-        const numbers = try bm.loadTestData(f64, io, gpa, "ref/testdata/numbers.bin");
+        const numbers = try bm.loadTestData(f64, io, gpa, "ref/testdata/f64sample.bin");
         defer gpa.free(numbers);
         const codec = IbexNumber(f64);
         try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000, .name = name });
