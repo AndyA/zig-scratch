@@ -27,6 +27,5 @@ pub fn main() !void {
     const numbers = getTestData();
     const codec = IbexNumber(f64);
 
-    try bm.benchmarkCodec(gpa, codec, numbers, bm.WarmUp);
     try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000 });
 }
