@@ -14,4 +14,7 @@
        encodedLength:            294478354/s
                write:             82481302/s
                 read:            115281172/s
-2026-01-12T13:15:33+00:00 - 24b93c7 - verde - 0.16.0-dev.2145+ec25b1384
+2026-01-12T14:23:52+00:00 - 51ede9c - verde - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            448845205/s
+               write:            236507214/s
+                read:            236779477/s
