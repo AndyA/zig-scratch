@@ -19,8 +19,6 @@ pub const BMOptions = struct {
     repeats: usize,
 };
 
-pub const WarmUp = BMOptions{ .output = false, .repeats = 1 };
-
 pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options: BMOptions) !void {
     var enc_size: usize = undefined;
 
