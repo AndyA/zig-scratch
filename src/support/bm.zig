@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
+const Timer = std.time.Timer;
 
 const bytes = @import("../ibex/bytes.zig");
 const ByteWriter = bytes.ByteWriter;
@@ -14,7 +15,7 @@ pub fn bitCount(comptime T: type) usize {
     };
 }
 
-pub fn loadTestData(comptime T: type, io: std.Io, gpa: Allocator, comptime file: []const u8) ![]T {
+pub fn loadTestData(comptime T: type, io: std.Io, gpa: Allocator, file: []const u8) ![]T {
     const IT = @Int(.unsigned, bitCount(T));
 
     const raw = try std.Io.Dir.cwd().readFileAlloc(io, file, gpa, .unlimited);
@@ -28,24 +29,25 @@ pub fn loadTestData(comptime T: type, io: std.Io, gpa: Allocator, comptime file:
     return buf;
 }
 
-pub fn showRate(name: []const u8, total: usize, timer: *std.time.Timer) void {
+pub fn showRate(name: []const u8, metric: []const u8, total: usize, timer: *Timer) void {
     const elapsed = timer.lap();
     // std.debug.print("elapsed={d}\n", .{elapsed});
     const seconds = @as(f64, @floatFromInt(elapsed)) / 1_000_000_000;
     const rate = @as(f64, @floatFromInt(total)) / seconds;
-    std.debug.print("{s:>20}: {d:>20.0}/s\n", .{ name, rate });
+    std.debug.print("[{s:>20}] {s:>20}: {d:>20.0}/s\n", .{ name, metric, rate });
 }
 
 pub const BMOptions = struct {
     output: bool = true,
     repeats: usize,
+    name: []const u8,
 };
 
 pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options: BMOptions) !void {
     var enc_size: usize = undefined;
 
     {
-        var timer = try std.time.Timer.start();
+        var timer = try Timer.start();
         for (0..options.repeats) |_| {
             enc_size = 0;
             for (numbers) |n| {
@@ -53,7 +55,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
             }
         }
         if (options.output)
-            showRate("encodedLength", numbers.len * options.repeats, &timer);
+            showRate(options.name, "encodedLength", numbers.len * options.repeats, &timer);
     }
 
     const enc_buf = try gpa.alloc(u8, enc_size);
@@ -61,7 +63,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
 
     var w = ByteWriter{ .buf = enc_buf };
     {
-        var timer = try std.time.Timer.start();
+        var timer = try Timer.start();
         for (0..options.repeats) |_| {
             w.pos = 0;
             for (numbers) |n| {
@@ -70,7 +72,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
             assert(w.pos == enc_size);
         }
         if (options.output)
-            showRate("write", numbers.len * options.repeats, &timer);
+            showRate(options.name, "write", numbers.len * options.repeats, &timer);
     }
 
     const output = try gpa.alloc(f64, numbers.len);
@@ -78,7 +80,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
 
     var r = ByteReader{ .buf = w.slice() };
     {
-        var timer = try std.time.Timer.start();
+        var timer = try Timer.start();
         for (0..options.repeats) |_| {
             r.pos = 0;
             for (0..numbers.len) |i| {
@@ -87,7 +89,7 @@ pub fn benchmarkCodec(gpa: Allocator, codec: anytype, numbers: anytype, options:
             assert(w.pos == r.pos);
         }
         if (options.output)
-            showRate("read", numbers.len * options.repeats, &timer);
+            showRate(options.name, "read", numbers.len * options.repeats, &timer);
     }
 
     for (numbers, 0..) |n, i| {

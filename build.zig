@@ -52,5 +52,5 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mule_tests.step);
 
-    benchmark(b, "bm-numbers", target, optimize);
+    benchmark(b, "bm-codec", target, optimize);
 }

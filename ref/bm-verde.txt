@@ -1,20 +1,20 @@
 2026-01-09T03:53:37+00:00 - b087bf4 - verde
-       encodedLength:            285843603/s
-               write:             85481705/s
-                read:            118366977/s
+[     IbexNumber(f64)]       encodedLength:            285843603/s
+[     IbexNumber(f64)]               write:             85481705/s
+[     IbexNumber(f64)]                read:            118366977/s
 2026-01-12T12:08:52+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
-       encodedLength:            273250106/s
-               write:             83773395/s
-                read:            115283214/s
+[     IbexNumber(f64)]       encodedLength:            273250106/s
+[     IbexNumber(f64)]               write:             83773395/s
+[     IbexNumber(f64)]                read:            115283214/s
 2026-01-12T12:11:55+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
-       encodedLength:            276331967/s
-               write:             83766872/s
-                read:            115431235/s
+[     IbexNumber(f64)]       encodedLength:            276331967/s
+[     IbexNumber(f64)]               write:             83766872/s
+[     IbexNumber(f64)]                read:            115431235/s
 2026-01-12T12:18:00+00:00 - 4e3a066 - verde - 0.16.0-dev.2145+ec25b1384
-       encodedLength:            294478354/s
-               write:             82481302/s
-                read:            115281172/s
+[     IbexNumber(f64)]       encodedLength:            294478354/s
+[     IbexNumber(f64)]               write:             82481302/s
+[     IbexNumber(f64)]                read:            115281172/s
 2026-01-12T14:44:32+00:00 - 97ed529 - verde - 0.16.0-dev.2145+ec25b1384
-       encodedLength:            295870418/s
-               write:             82126726/s
-                read:            116283871/s
+[     IbexNumber(f64)]       encodedLength:            295870418/s
+[     IbexNumber(f64)]               write:             82126726/s
+[     IbexNumber(f64)]                read:            116283871/s

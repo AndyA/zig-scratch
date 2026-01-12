@@ -18,5 +18,5 @@ pub fn main() !void {
     defer gpa.free(numbers);
     const codec = IbexNumber(f64);
 
-    try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000 });
+    try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000, .name = "IbexNumber(f64)" });
 }
