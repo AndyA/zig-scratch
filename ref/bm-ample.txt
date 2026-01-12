@@ -6,3 +6,7 @@
        encodedLength:            446142944/s
                write:            114373685/s
                 read:            154700370/s
+2026-01-12T13:49:37+00:00 - f5596fe - ample - 0.16.0-dev.2145+ec25b1384
+       encodedLength:            736827957/s
+               write:            346823345/s
+                read:            349780213/s
