@@ -45,8 +45,8 @@ pub fn main(init: std.process.Init) !void {
             break :blk false;
         };
         if (selected) {
-            const bm_fun = @field(Benchmarks, d.name);
-            try bm_fun(&runner, d.name);
+            const bm_fn = @field(Benchmarks, d.name);
+            try bm_fn(&runner, d.name);
         }
     }
 }
