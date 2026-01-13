@@ -21,3 +21,5 @@ Oryx: fast encoding for object
 - ordered mode for indexes
 - unbounded numeric precison / huge range (+/- 2^2^63-1)
 - shadow class object representation
+
+## Shadow Classes
