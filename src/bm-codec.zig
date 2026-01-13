@@ -5,26 +5,34 @@ const Allocator = std.mem.Allocator;
 const wildMatch = @import("./support/wildcard.zig").wildMatch;
 const bm = @import("./support/bm.zig");
 
+const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
+const IbexInt = @import("./ibex/IbexInt.zig");
+
 const Benchmarks = struct {
-    pub fn @"IbexNumber/f64"(io: std.Io, gpa: Allocator, comptime name: []const u8) !void {
-        const IbexNumber = @import("./ibex/IbexNumber.zig").IbexNumber;
-        const numbers = try bm.loadTestData(f64, io, gpa, "ref/testdata/f64sample.bin");
-        defer gpa.free(numbers);
+    const Self = @This();
+
+    io: std.Io,
+    gpa: Allocator,
+
+    pub fn @"IbexNumber/f64"(self: *Self, comptime name: []const u8) !void {
+        const numbers = try bm.loadTestData(f64, self.io, self.gpa, "ref/testdata/f64sample.bin");
+        defer self.gpa.free(numbers);
         const codec = IbexNumber(f64);
-        try bm.benchmarkCodec(gpa, codec, numbers, .{ .repeats = 1000, .name = name });
+        try bm.benchmarkCodec(self.gpa, codec, numbers, .{ .repeats = 1000, .name = name });
     }
 
-    pub fn @"IbexInt/lengths"(io: std.Io, gpa: Allocator, comptime name: []const u8) !void {
-        const IbexInt = @import("./ibex/IbexInt.zig");
-        const numbers = try bm.loadTestData(i64, io, gpa, "ref/testdata/i64lengths.bin");
-        defer gpa.free(numbers);
-        try bm.benchmarkCodec(gpa, IbexInt, numbers, .{ .repeats = 5000, .name = name });
+    pub fn @"IbexInt/lengths"(self: *Self, comptime name: []const u8) !void {
+        const numbers = try bm.loadTestData(i64, self.io, self.gpa, "ref/testdata/i64lengths.bin");
+        defer self.gpa.free(numbers);
+        try bm.benchmarkCodec(self.gpa, IbexInt, numbers, .{ .repeats = 5000, .name = name });
     }
 };
 
 pub fn main(init: std.process.Init) !void {
     const args = try init.minimal.args.toSlice(init.gpa);
     defer init.gpa.free(args);
+
+    var runner = Benchmarks{ .io = init.io, .gpa = init.gpa };
 
     inline for (@typeInfo(Benchmarks).@"struct".decls) |d| {
         const selected = blk: {
@@ -38,7 +46,7 @@ pub fn main(init: std.process.Init) !void {
         };
         if (selected) {
             const bm_fun = @field(Benchmarks, d.name);
-            try bm_fun(init.io, init.gpa, d.name);
+            try bm_fun(&runner, d.name);
         }
     }
 }
